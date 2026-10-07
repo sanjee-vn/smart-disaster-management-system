@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, FileText, House, Layers3, Menu, MessageSquare, MoreHorizontal, Send, Settings, Siren, Users, X, Activity } from 'lucide-react';
 import { Badge, Brand, Button, Field, Header, MapPanel } from './components/ui.jsx';
 import DashboardScreen from './components/screens/Dashboard.jsx';
@@ -10,6 +11,10 @@ import WarningReviewScreen from './components/screens/WarningReview.jsx';
 import DeliveryStatusScreen from './components/screens/DeliveryStatus.jsx';
 import WarningRegisterScreen from './components/screens/WarningRegister.jsx';
 import PlaceholderPageScreen from './components/screens/PlaceholderPage.jsx';
+import ResourceCoordinationDashboard from './pages/ResourceCoordinationDashboard';
+import CreateDistributionPage from './pages/CreateDistributionPage';
+import ReviewDistributionPage from './pages/ReviewDistributionPage';
+import DistributionProcessingPlaceholder from './pages/DistributionProcessingPlaceholder';
 import './App.css';
 
 const initialHazards = [
@@ -52,7 +57,8 @@ function loadSaved(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
 }
 
-function App() {
+function HazardWarningApp() {
+  const routeNavigate = useNavigate()
   const [hazards, setHazards] = useState(() => loadSaved('sdews-hazards', initialHazards))
   const [warnings, setWarnings] = useState(() => loadSaved('sdews-warnings', []))
   const [screen, setScreen] = useState('dashboard')
@@ -119,12 +125,27 @@ function App() {
   const pageByScreen = { dashboard: DashboardScreen, details: HazardDetailsScreen, assessment: EventAssessmentScreen, level: WarningLevelScreen, area: AffectedAreaScreen, review: WarningReviewScreen, delivery: DeliveryStatusScreen, warnings: WarningRegisterScreen };
   const currentScreen = ['incidents', 'resources', 'communications', 'reports', 'users', 'settings', 'help'].includes(screen) ? <PlaceholderPageScreen kind={screen} {...screenProps} /> : React.createElement(pageByScreen[screen] || DashboardScreen, screenProps);
 
-  return <div className="app-shell"><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{navItems.map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div><button className="user-card" onClick={() => setToast('Signed in as Assessment Officer')}><span className="avatar">AO</span><span><b>Assessment Officer</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
+  return <div className="app-shell"><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{navItems.map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => label === 'Resources' ? routeNavigate('/resource-coordination') : navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div><button className="user-card" onClick={() => setToast('Signed in as Assessment Officer')}><span className="avatar">AO</span><span><b>Assessment Officer</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
     <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{activeNav}</b></div><div className="topbar-actions"><span className="topbar-date">Tuesday, 07 October 2026</span><button className="notification-button" aria-label="Notifications" onClick={() => setToast('You are up to date with all system notifications')}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">AO</span><span><b>Assessment Officer</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className="content-area">{currentScreen}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Data stored locally for this prototype <i className="online-dot"/></span></footer></div></main>
     {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal('') }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={19}/></button>{modal === 'hazard-actions' ? <><span className="modal-icon amber"><MoreHorizontal/></span><h2 id="modal-title">Hazard actions</h2><p>Choose an action for {selectedHazard.id} in {selectedHazard.district}.</p><div className="modal-actions vertical"><Button variant="primary" onClick={() => { setModal(''); navigate('details', 'Hazard Monitoring') }}>Review hazard details</Button><Button variant="teal-button" onClick={() => { setModal(''); beginWarning(selectedHazard.id) }}>Create warning draft</Button><Button onClick={() => setModal('')}>Close</Button></div></> : modal === 'publish' ? <><span className="modal-icon warning-icon"><AlertTriangle/></span><div className="modal-eyebrow">FINAL CONFIRMATION</div><h2 id="modal-title">Confirm publication</h2><p>You are about to publish this <b>{warning.level.toLowerCase()} warning</b> to <b>{warning.areas.length} affected areas</b> through {warning.channels.join(', ')}. Are you ready to send this public safety message?</p><div className="modal-summary"><span>Hazard <b>{selectedHazard.id}</b></span><span>Target audience <b>{(warning.areas.length * 12480).toLocaleString()} people</b></span></div><div className="modal-actions"><Button onClick={() => setModal('')}>No, go back</Button><Button variant="danger-button" icon={Send} onClick={publishWarning}>Yes, publish warning</Button></div></> : modal === 'escalate' ? <><span className="modal-icon blue"><ArrowRight/></span><div className="modal-eyebrow">ESCALATION</div><h2 id="modal-title">Escalate this warning?</h2><p>The regional authority will be notified and the warning will be flagged for urgent review.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Go back</Button><Button variant="primary" onClick={dispatchEscalation}>Confirm escalation</Button></div></> : modal === 'cancel-warning' ? <><span className="modal-icon danger"><X/></span><div className="modal-eyebrow">STOP DELIVERY</div><h2 id="modal-title">Cancel this warning?</h2><p>Further delivery attempts will stop. The issued warning will be marked as cancelled in the audit history.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Keep warning active</Button><Button variant="danger-button" onClick={cancelIssuedWarning}>Confirm cancellation</Button></div></> : <><span className="modal-icon amber"><AlertTriangle/></span><h2 id="modal-title">Cancel this process?</h2><p>Your current warning details are saved as a draft on this device.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Continue editing</Button><Button variant="danger-button" onClick={() => { setModal(''); navigate('dashboard', 'Dashboard'); setToast('Warning process saved as a draft') }}>Save and exit</Button></div></>}</section></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={18}/>{toast}<button aria-label="Dismiss notification" onClick={() => setToast('')}><X size={15}/></button></div>}
   </div>
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HazardWarningApp />} />
+        <Route path="/resource-coordination" element={<ResourceCoordinationDashboard />} />
+        <Route path="/resource-coordination/distributions/new/:shelterId" element={<CreateDistributionPage />} />
+        <Route path="/resource-coordination/distributions/review" element={<ReviewDistributionPage />} />
+        <Route path="/resource-coordination/distributions/processing" element={<DistributionProcessingPlaceholder />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App
