@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import IncomingResourcesTable from '../components/IncomingResourcesTable'
 import MapPlaceholder from '../components/MapPlaceholder'
 import ShelterCard from '../components/ShelterCard'
+import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getShelterById, getShelters } from '../services/resourceCoordinationService'
+import { formatEnumLabel, getResponseOperationsPaths, getStandaloneResponseContext } from '../utils/responseOperationsRoutes'
 
 const activeIncident = {
   name: 'Colombo District Flood Response',
@@ -16,6 +18,10 @@ const activeIncident = {
 
 export default function ResourceCoordinationDashboard() {
   const navigate = useNavigate()
+  const { incidentId } = useParams()
+  const { context: incidentContext, loading: contextLoading, error: contextError, reload: reloadContext } = useIncidentResponseContext(incidentId)
+  const responseContext = incidentContext || getStandaloneResponseContext()
+  const paths = getResponseOperationsPaths(incidentId)
   const [shelters, setShelters] = useState([])
   const [selectedShelter, setSelectedShelter] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -26,7 +32,7 @@ export default function ResourceCoordinationDashboard() {
     setLoading(true)
     setError('')
     try {
-      const data = await getShelters()
+      const data = await getShelters(incidentId)
       setShelters(data)
       setSelectedShelter(data[0] || null)
     } catch (requestError) {
@@ -38,7 +44,7 @@ export default function ResourceCoordinationDashboard() {
 
   useEffect(() => {
     let active = true
-    getShelters()
+    getShelters(incidentId)
       .then((data) => {
         if (!active) return
         setShelters(data)
@@ -51,7 +57,7 @@ export default function ResourceCoordinationDashboard() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [])
+  }, [incidentId])
 
   const selectShelter = async (id) => {
     setDetailLoading(true)
@@ -65,17 +71,22 @@ export default function ResourceCoordinationDashboard() {
     }
   }
 
+  if (contextLoading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading incident response context" /></div></DashboardLayout>
+  if (contextError) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Incident context unavailable</h3><p>{contextError}</p><button className="btn btn-primary" onClick={reloadContext}><RefreshCw size={12} /> Retry</button></div></div></DashboardLayout>
+
   return (
     <DashboardLayout>
       <div className="content">
         <div className="page-heading"><div><h1>Resource Coordination</h1><p className="subtitle">Monitor shelter demand and coordinate incoming relief supplies.</p></div><span className="updated">Operational dashboard</span></div>
 
-        <section className="incident-banner">
-          <div><div className="incident-kicker"><span className="pulse" /> Active incident</div><h2>{activeIncident.name}</h2></div>
+        <section className={`incident-banner ${incidentId ? 'incident-aware' : ''}`}>
+          <div><div className="incident-kicker"><span className="pulse" /> Active incident</div><h2>{incidentId ? responseContext.incidentName : activeIncident.name}</h2></div>
           <div className="incident-meta">
-            <div className="meta-item"><span>District</span><strong>{activeIncident.district}</strong></div>
-            <div className="meta-item"><span>Hazard type</span><strong>{activeIncident.hazardType}</strong></div>
-            <div className="meta-item"><span>Incident status</span><strong className="status-live">{activeIncident.status}</strong></div>
+            {incidentId && <><div className="meta-item"><span>Incident ID</span><strong>{responseContext.incidentId}</strong></div><div className="meta-item"><span>Warning ID</span><strong>{responseContext.warningId || 'Not linked'}</strong></div><div className="meta-item"><span>Response ID</span><strong>{responseContext.responseId || 'Not assigned'}</strong></div></>}
+            <div className="meta-item"><span>District</span><strong>{incidentId ? responseContext.district : activeIncident.district}</strong></div>
+            <div className="meta-item"><span>Hazard type</span><strong>{incidentId ? responseContext.hazardType : activeIncident.hazardType}</strong></div>
+            {incidentId && <div className="meta-item"><span>Severity</span><strong>{formatEnumLabel(responseContext.severity)}</strong></div>}
+            <div className="meta-item"><span>{incidentId ? 'Response status' : 'Incident status'}</span><strong className="status-live">{incidentId ? formatEnumLabel(responseContext.responseStatus) : activeIncident.status}</strong></div>
           </div>
         </section>
 
@@ -86,7 +97,7 @@ export default function ResourceCoordinationDashboard() {
         {!loading && !error && shelters.length === 0 && <div className="state"><h3>No shelters found</h3><p>There are no shelters assigned to the active incident yet.</p></div>}
         {!loading && !error && shelters.length > 0 && (
           <div className="shelter-grid">
-            {shelters.map((shelter) => <ShelterCard key={shelter.id} shelter={shelter} selected={selectedShelter?.id === shelter.id} onSelect={() => selectShelter(shelter.id)} onLogDistribution={() => navigate(`/resource-coordination/distributions/new/${shelter.id}`)} />)}
+            {shelters.map((shelter) => <ShelterCard key={shelter.id} shelter={shelter} selected={selectedShelter?.id === shelter.id} onSelect={() => selectShelter(shelter.id)} onLogDistribution={() => navigate(paths.create(shelter.id), { state: { responseContext } })} />)}
           </div>
         )}
 
@@ -100,7 +111,7 @@ export default function ResourceCoordinationDashboard() {
             </div>
             <div className="details-grid">
               <section className="panel">
-                <div className="panel-header"><div><h2>Incoming Resources</h2><p>{selectedShelter.incomingResources.length} deliveries scheduled for this shelter</p></div><button className="btn btn-primary" onClick={() => navigate(`/resource-coordination/distributions/new/${selectedShelter.id}`)}>Log New Distribution</button></div>
+                <div className="panel-header"><div><h2>Incoming Resources</h2><p>{selectedShelter.incomingResources.length} deliveries scheduled for this shelter</p></div><button className="btn btn-primary" onClick={() => navigate(paths.create(selectedShelter.id), { state: { responseContext } })}>Log New Distribution</button></div>
                 <IncomingResourcesTable resources={selectedShelter.incomingResources} />
               </section>
               <MapPlaceholder shelter={selectedShelter} />

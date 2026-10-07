@@ -1,11 +1,7 @@
-import axios from 'axios'
+import api from './apiClient'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'
-
-const api = axios.create({ baseURL: API_BASE_URL })
-
-export const getShelters = async () => {
-  const response = await api.get('/resource-coordination/shelters')
+export const getShelters = async (incidentId) => {
+  const response = await api.get('/resource-coordination/shelters', { params: incidentId ? { incidentId } : {} })
   return response.data.data
 }
 

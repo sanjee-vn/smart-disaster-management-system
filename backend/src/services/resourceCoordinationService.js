@@ -5,6 +5,7 @@ const deliveryResourceRepository = require("../repositories/deliveryResourceRepo
 
 const toResponse = (shelter) => ({
   id: shelter._id.toString(),
+  shelterId: shelter.shelterId,
   name: shelter.name,
   district: shelter.district,
   incidentId: shelter.incidentId,
@@ -15,7 +16,10 @@ const toResponse = (shelter) => ({
   incomingResources: shelter.incomingResources,
 });
 
-const getShelters = async () => (await shelterRepository.findAll()).map(toResponse);
+const getShelters = async ({ incidentId } = {}) => {
+  const filters = incidentId ? { incidentId } : {};
+  return (await shelterRepository.findAll(filters)).map(toResponse);
+};
 
 const getShelterById = async (id) => {
   if (!mongoose.isValidObjectId(id)) {

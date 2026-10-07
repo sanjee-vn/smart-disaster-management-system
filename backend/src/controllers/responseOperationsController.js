@@ -1,0 +1,28 @@
+const service = require("../services/responseOperationsService");
+
+const getWarning = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getWarning(req.params.warningId) }); } catch (error) { next(error); }
+};
+const updateWarning = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.updateWarning(req.params.warningId, req.body) }); } catch (error) { next(error); }
+};
+const listIncidents = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getIncidents() }); } catch (error) { next(error); }
+};
+const getIncident = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getIncident(req.params.incidentId) }); } catch (error) { next(error); }
+};
+const listAgencies = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getAgencies(req.query) }); } catch (error) { next(error); }
+};
+const listTeams = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getTeams(req.query) }); } catch (error) { next(error); }
+};
+const listAssignments = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.getAssignments(req.query) }); } catch (error) { next(error); }
+};
+const dispatchAssignment = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.dispatchResponseAssignment(req.body) }); } catch (error) { next(error); }
+};
+
+module.exports = { getWarning, updateWarning, listIncidents, getIncident, listAgencies, listTeams, listAssignments, dispatchAssignment };
