@@ -2,7 +2,7 @@ const service = require("../services/resourceCoordinationService");
 
 const listShelters = async (req, res, next) => {
   try {
-    res.json({ success: true, data: await service.getShelters(req.query) });
+    res.json({ success: true, data: await service.getShelters() });
   } catch (error) { next(error); }
 };
 

@@ -9,18 +9,16 @@ const pendingRequestSchema = new mongoose.Schema({
 }, { _id: false });
 
 const incomingResourceSchema = new mongoose.Schema({
-  distributionId: { type: String, trim: true },
   item: { type: String, required: true, trim: true },
   quantity: { type: Number, required: true, min: 0 },
   unit: { type: String, trim: true, default: "units" },
   owner: { type: String, trim: true },
   deliveryResource: { type: String, trim: true },
-  status: { type: String, enum: ["Scheduled", "In Transit", "Delivered", "Delayed", "EN_ROUTE"], default: "Scheduled" },
+  status: { type: String, enum: ["Scheduled", "In Transit", "Delivered", "Delayed"], default: "Scheduled" },
   eta: Date,
 }, { _id: false });
 
 const shelterSchema = new mongoose.Schema({
-  shelterId: { type: String, required: true, unique: true, sparse: true, trim: true },
   name: { type: String, required: true, trim: true },
   district: { type: String, required: true, trim: true },
   incidentId: { type: String, required: true, index: true },

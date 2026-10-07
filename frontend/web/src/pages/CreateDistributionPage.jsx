@@ -5,23 +5,13 @@ import DashboardLayout from '../components/DashboardLayout'
 import DeliveryResourceSelector from '../components/DeliveryResourceSelector'
 import InventorySelector from '../components/InventorySelector'
 import ValidationMessage from '../components/ValidationMessage'
-import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getDeliveryResources, getInventory, getShelterById } from '../services/resourceCoordinationService'
-import { getResponseOperationsPaths, getStandaloneResponseContext } from '../utils/responseOperationsRoutes'
 
 export default function CreateDistributionPage() {
-  const { incidentId, shelterId } = useParams()
+  const { shelterId } = useParams()
   const navigate = useNavigate()
   const { state } = useLocation()
   const editDraft = state?.editDraft
-  const contextIncidentId = incidentId || editDraft?.incidentId
-  const { context: incidentContext, loading: contextLoading, error: contextError } = useIncidentResponseContext(contextIncidentId)
-  const responseContext = incidentContext || state?.responseContext || (editDraft ? {
-    warningId: editDraft.warningId ?? null,
-    incidentId: editDraft.incidentId ?? null,
-    responseId: editDraft.responseId ?? null,
-  } : getStandaloneResponseContext())
-  const paths = getResponseOperationsPaths(contextIncidentId)
   const [shelter, setShelter] = useState(null)
   const [inventory, setInventory] = useState([])
   const [deliveryResources, setDeliveryResources] = useState([])
@@ -44,21 +34,11 @@ export default function CreateDistributionPage() {
   useEffect(() => {
     let active = true
     Promise.all([getShelterById(shelterId), getDeliveryResources(), editDraft?.category ? getInventory(editDraft.category) : Promise.resolve([])])
-      .then(([shelterData, resourceData, inventoryData]) => {
-        if (!active) return
-        setShelter(shelterData)
-        setDeliveryResources(resourceData)
-        setInventory(inventoryData)
-        const restoredDelivery = resourceData.find((resource) => resource.id === editDraft?.deliveryResourceId)
-        if (restoredDelivery && restoredDelivery.status !== 'AVAILABLE') {
-          setDeliveryResourceId('')
-          setErrors((current) => ({ ...current, deliveryResource: 'The previously selected delivery resource is no longer available. Please select another resource.' }))
-        }
-      })
+      .then(([shelterData, resourceData, inventoryData]) => { if (active) { setShelter(shelterData); setDeliveryResources(resourceData); setInventory(inventoryData) } })
       .catch((requestError) => { if (active) setPageError(requestError.response?.data?.message || 'Could not load the distribution form data.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [shelterId, editDraft?.category, editDraft?.deliveryResourceId])
+  }, [shelterId, editDraft?.category])
 
   const handleCategoryChange = async (nextCategory) => {
     setCategory(nextCategory)
@@ -95,8 +75,7 @@ export default function CreateDistributionPage() {
     else if (!Number.isFinite(Number(quantity))) nextErrors.quantity = 'Quantity must be a number.'
     else if (Number(quantity) <= 0) nextErrors.quantity = 'Quantity must be greater than 0.'
     else if (selectedInventory && Number(quantity) > selectedInventory.availableQuantity) nextErrors.quantity = `Quantity cannot exceed ${selectedInventory.availableQuantity} ${selectedInventory.unit}.`
-    if (!selectedDelivery) nextErrors.deliveryResource = errors.deliveryResource || 'Select an available delivery vehicle or team.'
-    else if (selectedDelivery.status !== 'AVAILABLE') nextErrors.deliveryResource = 'The previously selected delivery resource is no longer available. Please select another resource.'
+    if (!selectedDelivery) nextErrors.deliveryResource = 'Select an available delivery vehicle or team.'
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -105,9 +84,6 @@ export default function CreateDistributionPage() {
     event.preventDefault()
     if (!validate()) return
     const draft = {
-      warningId: responseContext.warningId ?? null,
-      incidentId: incidentId || responseContext.incidentId || null,
-      responseId: responseContext.responseId ?? null,
       shelterId, shelterName: shelter.name, category,
       inventoryItemId: selectedInventory.id, itemName: selectedInventory.itemName,
       resourceOwnerId: selectedInventory.owner.id, resourceOwnerName: selectedInventory.owner.name, resourceOwnerType: selectedInventory.owner.type,
@@ -115,16 +91,16 @@ export default function CreateDistributionPage() {
       deliveryResourceId: selectedDelivery.id, deliveryResourceName: selectedDelivery.name, deliveryResourceType: selectedDelivery.type, deliveryResourceStatus: selectedDelivery.status,
       eta, notes: notes.trim(),
     }
-    navigate(paths.review, { state: { draft } })
+    navigate('/resource-coordination/distributions/review', { state: { draft } })
   }
 
-  if (loading || contextLoading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading distribution form" /></div></DashboardLayout>
-  if (pageError || contextError || !shelter) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Unable to prepare distribution</h3><p>{pageError || contextError}</p><button className="btn btn-secondary" onClick={() => navigate(paths.dashboard)}>Back to dashboard</button></div></div></DashboardLayout>
+  if (loading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading distribution form" /></div></DashboardLayout>
+  if (pageError || !shelter) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Unable to prepare distribution</h3><p>{pageError}</p><button className="btn btn-secondary" onClick={() => navigate('/resource-coordination')}>Back to dashboard</button></div></div></DashboardLayout>
 
   return (
     <DashboardLayout>
       <div className="content create-page">
-        <button className="back-link" onClick={() => navigate(paths.dashboard)}><ArrowLeft size={15} /> Resource Coordination</button>
+        <button className="back-link" onClick={() => navigate('/resource-coordination')}><ArrowLeft size={15} /> Resource Coordination</button>
         <div className="page-heading"><div><h1>Log New Distribution</h1><p className="subtitle">Prepare a relief supply distribution for review.</p></div><span className="draft-badge">Draft · Not saved</span></div>
 
         <section className="shelter-context">
@@ -150,7 +126,7 @@ export default function CreateDistributionPage() {
             <div className="form-grid two-columns"><div className="field"><label htmlFor="eta">Estimated Time of Arrival <span>(Optional)</span></label><input id="eta" type="datetime-local" value={eta} onChange={(event) => setEta(event.target.value)} /></div><div className="field"><label htmlFor="notes">Notes <span>(Optional)</span></label><textarea id="notes" rows="3" maxLength="500" placeholder="Handling instructions or contact details" value={notes} onChange={(event) => setNotes(event.target.value)} /></div></div>
           </section>
 
-          <div className="form-actions"><button type="button" className="btn cancel-btn" onClick={() => navigate(paths.dashboard)}>Cancel</button><div><span>No inventory will be changed yet</span><button type="submit" className="btn continue-btn">Continue to Review <ArrowRight size={15} /></button></div></div>
+          <div className="form-actions"><button type="button" className="btn cancel-btn" onClick={() => navigate('/resource-coordination')}>Cancel</button><div><span>No inventory will be changed yet</span><button type="submit" className="btn continue-btn">Continue to Review <ArrowRight size={15} /></button></div></div>
         </form>
       </div>
     </DashboardLayout>
