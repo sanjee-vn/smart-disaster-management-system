@@ -1,0 +1,36 @@
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors as c } from '../theme';
+import { coordinatesLabel, DISASTERS, formatDate, statusInfo } from '../utils/reports.cjs';
+
+export function Icon({ name, size = 22, color = c.primary }) { return <Ionicons name={name} size={size} color={color} />; }
+export function Screen({ children, title, subtitle, action, scroll = true, insetTop = true }) {
+  const content = <><View style={ui.header}><View style={ui.flex}><Text style={ui.title}>{title}</Text>{subtitle && <Text style={ui.muted}>{subtitle}</Text>}</View>{action}</View>{children}</>;
+  return <SafeAreaView edges={insetTop ? ['top', 'left', 'right'] : ['left', 'right', 'bottom']} style={ui.screen}>{scroll ? <ScrollView contentContainerStyle={ui.page}>{content}</ScrollView> : <View style={ui.page}>{content}</View>}</SafeAreaView>;
+}
+export function Card({ children, style }) { return <View style={[ui.card, style]}>{children}</View>; }
+export function Button({ title, onPress, secondary = false, icon = 'arrow-forward', disabled = false }) {
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [ui.button, secondary && ui.secondary, (pressed || disabled) && { opacity: 0.65 }]}><Text style={[ui.buttonText, secondary && { color: c.primary }]}>{title}</Text><Icon name={icon} color={secondary ? c.primary : 'white'} size={19} /></Pressable>;
+}
+export function SectionTitle({ title, action, onPress }) { return <View style={ui.sectionRow}><Text style={ui.sectionTitle}>{title}</Text>{action && <Pressable accessibilityRole="button" style={ui.linkTarget} onPress={onPress}><Text style={ui.link}>{action} →</Text></Pressable>}</View>; }
+export function EmptyState({ title, message, icon = 'file-tray-outline', action, onPress }) {
+  return <Card style={ui.empty}><View style={ui.emptyIcon}><Icon name={icon} size={30} /></View><Text style={ui.sectionTitle}>{title}</Text><Text style={[ui.muted, { textAlign: 'center' }]}>{message}</Text>{action && <Button title={action} onPress={onPress} />}</Card>;
+}
+export function LoadingState({ message = 'Loading reports…' }) { return <View accessibilityLiveRegion="polite" style={ui.empty}><ActivityIndicator color={c.primary} /><Text style={ui.muted}>{message}</Text></View>; }
+export function Notice({ children, warning = false }) { return <View style={[ui.notice, warning && { backgroundColor: c.amberBg }]}><Icon name={warning ? 'alert-circle-outline' : 'information-circle-outline'} size={20} color={warning ? c.amber : c.muted} /><Text style={[ui.noticeText, warning && { color: c.amber }]}>{children}</Text></View>; }
+export function StatusBadge({ status }) { const info = statusInfo(status); return <View style={[ui.badge, { backgroundColor: info.background }]}><View style={[ui.dot, { backgroundColor: info.color }]} /><Text style={[ui.badgeText, { color: info.color }]}>{info.label}</Text></View>; }
+export function Filters({ values, selected, onChange }) { return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filters}>{values.map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: selected === value }} onPress={() => onChange(value)} style={[ui.filter, selected === value && ui.filterActive]}><Text style={[ui.filterText, selected === value && { color: 'white' }]}>{value}</Text></Pressable>)}</ScrollView>; }
+export function ReportCard({ report, onPress }) {
+  const category = DISASTERS[report.disasterType] || DISASTERS.Other;
+  return <Pressable accessibilityRole="button" accessibilityLabel={`View ${report.title}`} onPress={onPress} style={({ pressed }) => [ui.card, { opacity: pressed ? 0.7 : 1 }]}>
+    <View style={ui.row}><View style={[ui.reportIcon, { backgroundColor: `${category.color}15` }]}><Icon name={category.icon} color={category.color} /></View><View style={ui.flex}><Text style={ui.overline}>{report.disasterType.toUpperCase()}</Text><Text style={ui.cardTitle} numberOfLines={2}>{report.title}</Text></View></View>
+    <Text style={ui.muted} numberOfLines={2}>{report.description}</Text>
+    <View style={ui.metaRow}><Icon name="location-outline" size={15} color={c.muted} /><Text style={ui.metaText}>{coordinatesLabel(report)}</Text></View>
+    <View style={ui.metaRow}><Icon name="time-outline" size={15} color={c.muted} /><Text style={ui.metaText}>{formatDate(report.createdAt)} · Sri Lanka</Text></View>
+    <View style={ui.sectionRow}><StatusBadge status={report.status} /><Text style={ui.link}>View details →</Text></View>
+  </Pressable>;
+}
+export const ui = StyleSheet.create({
+  flex: { flex: 1 }, screen: { flex: 1, backgroundColor: c.background }, page: { padding: 20, paddingBottom: 28, gap: 18, width: '100%', maxWidth: 700, alignSelf: 'center' }, header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 5 }, title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.7, color: c.text, marginBottom: 6 }, muted: { fontSize: 14, lineHeight: 22, color: c.muted }, card: { borderRadius: 19, borderWidth: 1, borderColor: c.border, backgroundColor: c.card, padding: 19, gap: 12 }, row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }, sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text }, link: { color: c.primary, fontSize: 13, fontWeight: '700' }, linkTarget: { minHeight: 44, justifyContent: 'center' }, button: { backgroundColor: c.primary, padding: 16, minHeight: 52, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }, secondary: { backgroundColor: c.tint, borderColor: '#CDE0D9', borderWidth: 1 }, buttonText: { color: 'white', fontWeight: '700', fontSize: 15 }, empty: { padding: 25, alignItems: 'center', gap: 14 }, emptyIcon: { backgroundColor: c.tint, borderRadius: 18, padding: 18 }, notice: { backgroundColor: '#EAF0F3', borderRadius: 12, padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }, noticeText: { flex: 1, fontSize: 12, lineHeight: 19, color: c.muted }, badge: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 }, badgeText: { fontSize: 11, fontWeight: '700' }, dot: { width: 5, height: 5, borderRadius: 3 }, filters: { gap: 8 }, filter: { borderWidth: 1, borderColor: c.border, borderRadius: 11, paddingHorizontal: 15, minHeight: 44, justifyContent: 'center', backgroundColor: 'white' }, filterActive: { backgroundColor: c.navy, borderColor: c.navy }, filterText: { fontWeight: '600', color: c.muted, fontSize: 13 }, reportIcon: { width: 43, height: 43, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, cardTitle: { fontSize: 16, lineHeight: 23, fontWeight: '700', color: c.text }, overline: { fontSize: 10, letterSpacing: 1, fontWeight: '700', color: c.muted, marginBottom: 4 }, metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 }, metaText: { fontSize: 12, color: c.muted, flexShrink: 1 },
+});
