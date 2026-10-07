@@ -10,7 +10,8 @@
     "start": "node src/app.js",
     "seed:shelters": "node src/seeds/seedShelters.js",
     "seed:component03": "node src/seeds/seedComponent03.js",
-    "test": "echo \"No tests configured yet\""
+    "seed:response-operations": "node src/seeds/seedResponseOperations.js",
+    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js"
   },
   "keywords": [],
   "author": "",
