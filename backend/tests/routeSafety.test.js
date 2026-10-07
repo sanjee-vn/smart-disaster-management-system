@@ -6,6 +6,13 @@ const writeRoutes = routeLayers.flatMap((layer) => Object.keys(layer.route.metho
   .filter((method) => ["post", "put", "patch", "delete"].includes(method))
   .map((method) => `${method.toUpperCase()} ${layer.route.path}`));
 
-const allowedWriteRoutes = ["PATCH /warnings/:warningId", "POST /assignments/dispatch"];
+const allowedWriteRoutes = [
+  "POST /register",
+  "POST /login",
+  "POST /logout",
+  "POST /",
+  "PATCH /warnings/:warningId",
+  "POST /assignments/dispatch",
+];
 assert.deepEqual(writeRoutes, allowedWriteRoutes, `Unexpected active write routes: ${writeRoutes.join(", ")}`);
-console.log("Route safety passed: only the controlled Warning PATCH and assignment dispatch POST routes are active.");
+console.log("Route safety passed: only the allowed authentication, reporting, warning update, and assignment dispatch write routes are active.");
