@@ -1,6 +1,0 @@
-import { MapPin } from 'lucide-react'
-import StatusBadge from './StatusBadge'
-
-export default function AffectedAreaPanel({ incident, situationSummary }) {
-  return <section className="planning-card affected-area-panel"><div className="planning-card-heading"><span><MapPin size={18} /></span><div><h2>Affected Area &amp; Situation</h2><p>Geographic and population context for operational planning.</p></div></div><div className="affected-area-facts"><div><span>Affected area</span><strong>{incident.affectedArea || 'Not available'}</strong></div><div><span>District</span><strong>{incident.district}</strong></div><div><span>Population</span><strong>{incident.affectedPopulation?.toLocaleString() || 'Not available'}</strong></div><div><span>Hazard</span><strong>{incident.hazardType}</strong></div><div><span>Severity</span><StatusBadge value={incident.severity} kind="severity" /></div></div><div className="planning-map"><div className="planning-map-road" /><div className="planning-map-water" /><span className="planning-map-pin"><MapPin size={16} /></span><div className="planning-map-label"><strong>{incident.affectedArea || incident.district}</strong><span>Map placeholder · No live SDK</span></div></div><div className="situation-summary"><span>Demo situation context</span><p>{situationSummary}</p></div></section>
-}
