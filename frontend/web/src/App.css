@@ -224,3 +224,32 @@
 .resource-shell .spin { animation: rotate 1s linear infinite; }
 @keyframes rotate { to { transform: rotate(360deg); } }
 @media (max-width: 700px) { .resource-shell .review-grid, .resource-shell .stock-comparison { grid-template-columns: 1fr; } .resource-shell .inventory-review, .resource-shell .notes-review { grid-column: auto; } .resource-shell .review-warning, .resource-shell .review-actions, .resource-shell .review-actions > div { align-items: stretch; flex-direction: column; } .resource-shell .review-actions span { text-align: center; } }
+.api-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #d6e2e8;
+  border-radius: 10px;
+  background: #f2f8fa;
+  color: #234152;
+  font-size: 14px;
+}
+
+.api-status-banner code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #e4eef2;
+}
+
+.api-status-banner[role='alert'] {
+  border-color: #e9c6c1;
+  background: #fff4f2;
+  color: #7d3029;
+}
+
+.offline-dot {
+  background-color: #c54438 !important;
+}

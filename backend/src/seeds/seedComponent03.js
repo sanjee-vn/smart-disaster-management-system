@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("../config/env");
 const mongoose = require("mongoose");
 const connectDatabase = require("../config/database");
 const ResourceOwner = require("../models/ResourceOwner");

@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("../config/env");
 const mongoose = require("mongoose");
 const connectDatabase = require("../config/database");
 const Shelter = require("../models/Shelter");
@@ -42,8 +42,13 @@ const shelters = [
 const seed = async () => {
   try {
     await connectDatabase();
-    await Shelter.deleteMany({ incidentId });
-    await Shelter.insertMany(shelters);
+    await Shelter.bulkWrite(shelters.map((shelter) => ({
+      updateOne: {
+        filter: { incidentId, name: shelter.name },
+        update: { $set: shelter },
+        upsert: true,
+      },
+    })), { ordered: true });
     console.log(`Seeded ${shelters.length} shelters for ${incidentId}`);
   } finally {
     await mongoose.disconnect();
@@ -51,6 +56,6 @@ const seed = async () => {
 };
 
 seed().catch((error) => {
-  console.error("Shelter seed failed:", error.message);
+  console.error("Shelter seed failed:", error.name || "Error");
   process.exit(1);
 });

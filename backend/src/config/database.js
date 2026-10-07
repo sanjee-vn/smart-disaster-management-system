@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
+require("./env");
 
 const connectDatabase = async () => {
-  const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/smart_disaster_management";
-  await mongoose.connect(mongoUri);
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) throw new Error("MONGODB_URI is required. Add it to backend/.env before starting the API.");
+  await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 });
   console.log("MongoDB connected");
 };
 
