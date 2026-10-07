@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import ReviewSummary from '../components/ReviewSummary'
+import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getDeliveryResourceById, getInventoryItemById, getShelterById } from '../services/resourceCoordinationService'
 import { isDistributionValid, validateDistributionDraft } from '../utils/distributionValidation'
+import { formatEnumLabel, getResponseOperationsPaths } from '../utils/responseOperationsRoutes'
 
 export default function ReviewDistributionPage() {
   const { state } = useLocation()
   const navigate = useNavigate()
+  const { incidentId: routeIncidentId } = useParams()
   const draft = state?.draft
+  const incidentId = routeIncidentId || draft?.incidentId
+  const paths = getResponseOperationsPaths(incidentId)
+  const { context: responseContext, loading: contextLoading, error: contextError } = useIncidentResponseContext(draft ? incidentId : null)
   const [shelter, setShelter] = useState(null)
   const [inventory, setInventory] = useState(null)
   const [deliveryResource, setDeliveryResource] = useState(null)
@@ -58,12 +64,12 @@ export default function ReviewDistributionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (!draft) return <DashboardLayout><div className="content"><div className="state"><AlertTriangle size={26} /><h3>No distribution draft is available.</h3><p>Start from Resource Coordination to prepare a distribution.</p><button className="btn btn-primary" onClick={() => navigate('/resource-coordination')}>Return to Resource Coordination</button></div></div></DashboardLayout>
-  if (loading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Revalidating distribution" /></div></DashboardLayout>
-  if (error) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Unable to validate distribution</h3><p>{error}</p><button className="btn btn-secondary" onClick={() => navigate(`/resource-coordination/distributions/new/${draft.shelterId}`, { state: { editDraft: draft } })}>Edit Distribution</button></div></div></DashboardLayout>
+  if (!draft) return <DashboardLayout><div className="content"><div className="state"><AlertTriangle size={26} /><h3>No distribution draft is available.</h3><p>Start from Resource Coordination to prepare a distribution.</p><button className="btn btn-primary" onClick={() => navigate(paths.dashboard)}>Return to Resource Coordination</button></div></div></DashboardLayout>
+  if (loading || contextLoading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Revalidating distribution" /></div></DashboardLayout>
+  if (error || contextError) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Unable to validate distribution</h3><p>{error || contextError}</p><button className="btn btn-secondary" onClick={() => navigate(paths.create(draft.shelterId), { state: { editDraft: draft } })}>Edit Distribution</button></div></div></DashboardLayout>
 
   const validation = validateDistributionDraft(draft, inventory, deliveryResource)
-  const editDistribution = () => navigate(`/resource-coordination/distributions/new/${draft.shelterId}`, { state: { editDraft: draft } })
+  const editDistribution = () => navigate(paths.create(draft.shelterId), { state: { editDraft: draft } })
   const confirm = async () => {
     setConfirming(true)
     setError('')
@@ -73,7 +79,7 @@ export default function ReviewDistributionPage() {
       const latestValidation = validateDistributionDraft(draft, latest.inventory, latest.deliveryResource)
       if (!isDistributionValid(latestValidation)) return
       const validatedDraft = { ...draft, availableQuantity: latest.inventory.availableQuantity, unit: latest.inventory.unit, deliveryResourceStatus: latest.deliveryResource.status }
-      navigate('/resource-coordination/distributions/processing', { state: { draft: validatedDraft } })
+      navigate(paths.processing, { state: { draft: validatedDraft } })
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not complete the latest validation.')
     } finally {
@@ -86,6 +92,13 @@ export default function ReviewDistributionPage() {
       <div className="content review-page">
         <button className="back-link" onClick={editDistribution}><ArrowLeft size={15} /> Edit Distribution</button>
         <div className="page-heading"><div><h1>Review Distribution</h1><p className="subtitle">Verify the latest stock and delivery availability before dispatch.</p></div><span className="draft-badge">Final review</span></div>
+
+        <section className="response-context-strip">
+          <div><span>Incident</span><strong>{draft.incidentId || 'Standalone distribution'}</strong></div>
+          <div><span>Hazard</span><strong>{responseContext?.hazardType || 'Standalone'}</strong></div>
+          <div><span>Severity</span><strong>{responseContext ? formatEnumLabel(responseContext.severity) : 'Not available'}</strong></div>
+          <div><span>Selected shelter</span><strong>{draft.shelterName}</strong></div>
+        </section>
 
         {missing.inventory && <div className="review-warning danger"><AlertTriangle size={20} /><div><strong>Inventory item is no longer available.</strong><p>Return to the form and select another inventory source.</p></div><button className="btn btn-secondary" onClick={editDistribution}>Adjust Quantity / Edit Distribution</button></div>}
         {!missing.inventory && !validation.quantityValid && <div className="review-warning danger"><AlertTriangle size={20} /><div><strong>Requested quantity is invalid.</strong><p>Quantity must be greater than zero.</p></div><button className="btn btn-secondary" onClick={editDistribution}>Adjust Quantity / Edit Distribution</button></div>}

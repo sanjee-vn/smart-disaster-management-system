@@ -10,4 +10,11 @@ const findById = (id) => InventoryItem.findById(id)
   .populate({ path: "ownerId", select: "name type", model: ResourceOwner })
   .lean();
 
-module.exports = { findAll, findById };
+const findByIdInSession = (id, session) => InventoryItem.findById(id).session(session);
+const decrementAvailableStock = (id, quantity, session) => InventoryItem.findOneAndUpdate(
+  { _id: id, availableQuantity: { $gte: quantity } },
+  { $inc: { availableQuantity: -quantity } },
+  { returnDocument: "after", session }
+);
+
+module.exports = { findAll, findById, findByIdInSession, decrementAvailableStock };
