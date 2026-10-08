@@ -1,7 +1,7 @@
 import api from './apiClient'
 
-export const getShelters = async () => {
-  const response = await api.get('/resource-coordination/shelters')
+export const getShelters = async (incidentId) => {
+  const response = await api.get('/resource-coordination/shelters', { params: incidentId ? { incidentId } : {} })
   return response.data.data
 }
 

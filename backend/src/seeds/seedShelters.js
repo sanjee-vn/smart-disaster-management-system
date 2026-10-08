@@ -6,6 +6,7 @@ const Shelter = require("../models/Shelter");
 const incidentId = "INC-2026-COLOMBO-FLOOD-01";
 const shelters = [
   {
+    shelterId: "SHT-2026-COLOMBO-ALPHA",
     name: "Shelter Alpha - Royal College Hall", district: "Colombo", incidentId,
     occupancy: 286, capacity: 350, status: "Operational",
     pendingRequests: [
@@ -18,6 +19,7 @@ const shelters = [
     ],
   },
   {
+    shelterId: "SHT-2026-COLOMBO-BETA",
     name: "Shelter Beta - Kolonnawa Community Centre", district: "Colombo", incidentId,
     occupancy: 178, capacity: 200, status: "Near Capacity",
     pendingRequests: [
@@ -30,6 +32,7 @@ const shelters = [
     ],
   },
   {
+    shelterId: "SHT-2026-COLOMBO-GAMMA",
     name: "Shelter Gamma - Homagama Maha Vidyalaya", district: "Colombo", incidentId,
     occupancy: 94, capacity: 250, status: "Operational", pendingRequests: [],
     incomingResources: [
@@ -42,14 +45,18 @@ const shelters = [
 const seed = async () => {
   try {
     await connectDatabase();
-    await Shelter.bulkWrite(shelters.map((shelter) => ({
-      updateOne: {
-        filter: { incidentId, name: shelter.name },
-        update: { $set: shelter },
-        upsert: true,
-      },
-    })), { ordered: true });
-    console.log(`Seeded ${shelters.length} shelters for ${incidentId}`);
+    for (const shelter of shelters) {
+      const existing = await Shelter.findOne({
+        incidentId,
+        $or: [{ shelterId: shelter.shelterId }, { name: shelter.name }],
+      }).select("_id");
+      await Shelter.findOneAndUpdate(
+        existing ? { _id: existing._id } : { incidentId, shelterId: shelter.shelterId },
+        { $set: shelter },
+        { upsert: true, returnDocument: "after", runValidators: true }
+      );
+    }
+    console.log(`Upserted ${shelters.length} stable shelters for ${incidentId}`);
   } finally {
     await mongoose.disconnect();
   }

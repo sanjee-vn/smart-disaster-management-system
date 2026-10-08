@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const connectDatabase = require("./config/database");
 const resourceCoordinationRoutes = require("./routes/resourceCoordinationRoutes");
 const hazardWarningRoutes = require("./routes/hazardWarningRoutes");
+const responseOperationsRoutes = require("./routes/responseOperationsRoutes");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -40,11 +41,14 @@ app.get("/api/ready", (req, res) => {
 
 app.use("/api", hazardWarningRoutes);
 app.use("/api/resource-coordination", resourceCoordinationRoutes);
+app.use("/api/response-operations", responseOperationsRoutes);
 
-app.use((req, res) => res.status(404).json({
-  success: false,
-  error: { code: "NOT_FOUND", message: "The requested API endpoint does not exist" },
-}));
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { code: "NOT_FOUND", message: "API route not found" },
+  });
+});
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
