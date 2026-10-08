@@ -11,6 +11,7 @@ const distributionSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   deliveryResourceId: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryResource", required: true },
   status: { type: String, required: true, enum: ["EN_ROUTE", "DELIVERED", "PENDING_SYNC"], default: "EN_ROUTE" },
+  deliveredAt: { type: Date, default: null },
   eta: Date,
   notes: { type: String, trim: true, maxlength: 500 },
   createdBy: { type: String, required: true, default: "District Officer" },
