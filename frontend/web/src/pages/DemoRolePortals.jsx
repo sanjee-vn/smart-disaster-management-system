@@ -1,0 +1,67 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Activity, ArrowRight, Check, ClipboardCheck, LogOut, MapPin, Search, TriangleAlert, X } from 'lucide-react'
+import './DemoRolePortals.css'
+import './DutyIncidentReportsPanel.css'
+
+function Brand({ small = false }) {
+  return <div className="portal-brand"><span className="portal-mark"><i/><i/><i/></span><span><b>DMC Portal</b><small>Disaster Management Centre</small></span>{!small && <em>DEMO WORKFLOW</em>}</div>
+}
+
+function PortalHeader({ role, onLogout }) {
+  return <header className="portal-topbar"><Brand/><div className="portal-account"><span className="portal-avatar">{role === 'dmc' ? 'DO' : 'DU'}</span><span><b>{role === 'dmc' ? 'DMC Officer' : 'Duty Officer'}</b><small>Demo account</small></span><button onClick={onLogout} aria-label="Sign out"><LogOut size={16}/> Sign out</button></div></header>
+}
+
+function PortalShell({ role, onLogout, children, active = 'Dashboard' }) {
+  const navigate = useNavigate()
+  const dmc = role === 'dmc'
+  return <div className="role-portal"><PortalHeader role={role} onLogout={onLogout}/><div className="portal-layout"><aside className="portal-sidebar"><div className="portal-side-caption">OPERATIONS</div><button className={active === 'Dashboard' ? 'active' : ''} onClick={() => navigate(dmc ? '/dmc' : '/duty')}><Activity size={17}/>Dashboard</button>{dmc && <button className={active === 'Hazard Reports' ? 'active' : ''} onClick={() => navigate('/dmc')}><ClipboardCheck size={17}/>Hazard Reports</button>}{!dmc && <button className={active === 'Hazard Monitoring' ? 'active' : ''} onClick={() => navigate('/duty/hazard-monitoring')}><TriangleAlert size={17}/>Hazard Monitoring</button>}<div className="portal-sidebar-bottom"><span className="portal-live-dot"/> Demo records stored in this browser</div></aside><main className="portal-main">{children}</main></div></div>
+}
+
+function StatusPill({ status }) {
+  const label = status === 'PENDING' ? 'New report' : status === 'VERIFIED' ? 'Verified' : status === 'FORWARDED_TO_DUTY_OFFICER' ? 'Forwarded' : status === 'REJECTED' ? 'Rejected' : status === 'CLARIFICATION_REQUESTED' ? 'Clarification requested' : 'Warning issued'
+  return <span className={`portal-status status-${status.toLowerCase().replaceAll('_', '-')}`}>{label}</span>
+}
+
+function ReportRow({ report, selected, onClick }) {
+  return <button className={`portal-report-row ${selected ? 'selected' : ''}`} onClick={onClick}><span className="portal-report-icon"><TriangleAlert size={17}/></span><span className="portal-report-copy"><b>{report.title}</b><small>{report.disasterType} · {report.areaLabel || report.district} · {new Date(report.createdAt).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}</small></span><StatusPill status={report.status}/></button>
+}
+
+function DmcReportDetails({ report }) {
+  return <>
+    <section className="portal-card"><div className="portal-card-heading"><div><span className="portal-eyebrow">CITIZEN SUBMISSION</span><h2>Report details</h2></div><StatusPill status={report.status}/></div><dl className="portal-detail-grid"><div><dt>Report ID</dt><dd>{report.reportId || report.id}</dd></div><div><dt>Hazard type</dt><dd>{report.disasterType}</dd></div><div><dt>Reporter</dt><dd>{report.citizenId}</dd></div><div><dt>Reported</dt><dd>{new Date(report.createdAt).toLocaleString('en-LK')}</dd></div><div><dt>Location</dt><dd>{report.areaLabel || report.district}</dd></div><div><dt>Coordinates</dt><dd>{report.latitude.toFixed(4)}, {report.longitude.toFixed(4)}</dd></div><div className="wide"><dt>Description</dt><dd>{report.description}</dd></div></dl></section>
+    <section className="portal-card portal-map-card"><div className="portal-card-heading"><div><span className="portal-eyebrow">LOCATION FROM REPORT</span><h2><MapPin size={17}/> {report.areaLabel || report.district}</h2></div></div><div className="portal-map"><div className="map-river"/><div className="map-road road-one"/><div className="map-road road-two"/><span className="map-pin"><MapPin size={25} fill="currentColor"/></span><span className="map-coordinates">{report.latitude.toFixed(4)}° N · {report.longitude.toFixed(4)}° E</span></div></section>
+    <section className="portal-card portal-evidence-card"><div className="portal-card-heading"><div><span className="portal-eyebrow">EVIDENCE</span><h2>Photo from mobile report</h2></div></div>{report.photo ? <img className="portal-evidence" src={report.photo} alt="Citizen submitted evidence"/> : <div className="portal-no-evidence">No photo attached to this demo report</div>}</section>
+  </>
+}
+
+export function DmcReportReviewPage({ reports, onUpdateReport, onLogout }) {
+  const [selectedId, setSelectedId] = useState(reports[0]?.id || '')
+  const [query, setQuery] = useState('')
+  const [notes, setNotes] = useState('')
+  const [notice, setNotice] = useState('')
+  const selectedReport = reports.find((report) => report.id === selectedId) || reports[0]
+  const filtered = useMemo(() => reports.filter((report) => `${report.id} ${report.title} ${report.disasterType} ${report.areaLabel} ${report.district}`.toLowerCase().includes(query.trim().toLowerCase())), [reports, query])
+  const pendingCount = reports.filter((report) => report.status === 'PENDING').length
+  const duplicate = selectedReport && reports.some((report) => report.id !== selectedReport.id && report.disasterType === selectedReport.disasterType && Math.abs(report.latitude - selectedReport.latitude) < 0.05 && Math.abs(report.longitude - selectedReport.longitude) < 0.05)
+  if (!selectedReport) return <PortalShell role="dmc" onLogout={onLogout}><div className="portal-empty"><ClipboardCheck size={30}/><h1>No demo reports</h1><p>Demo report data is not available in local storage.</p></div></PortalShell>
+  const update = async (changes, successMessage) => {
+    try {
+      await onUpdateReport(selectedReport.id, { ...changes, operatorNotes: notes })
+      if (successMessage) setNotice(successMessage)
+    } catch (error) {
+      setNotice(error.response?.data?.error?.message || error.response?.data?.message || 'The report could not be updated. Please try again.')
+    }
+  }
+  return <PortalShell role="dmc" onLogout={onLogout} active="Hazard Reports"><div className="portal-page-heading"><div><span className="portal-eyebrow">DISASTER MANAGEMENT CENTRE · SRI LANKA</span><h1>DMC Operator Report Review</h1><p>Review citizen reports, record validation notes, then forward verified incidents for assessment.</p></div><div className="portal-heading-stat"><span><ClipboardCheck size={18}/></span><div><b>{pendingCount}</b><small>Awaiting review</small></div></div></div><div className="portal-review-steps"><div className="complete"><span><Check size={15}/></span><b>Receive</b><small>Report received</small></div><i/><div className="current"><span>2</span><b>Review</b><small>Check details and evidence</small></div><i/><div><span>3</span><b>Validate</b><small>Confirm information</small></div><i/><div><span>4</span><b>Forward</b><small>Send to Duty Officer</small></div></div><div className="portal-review-layout"><section className="portal-card portal-report-list"><div className="portal-card-heading"><div><span className="portal-eyebrow">INCOMING REPORTS</span><h2>Hazard reports <span className="portal-count">{reports.length}</span></h2></div></div><label className="portal-search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by location or hazard type"/></label><div className="portal-report-list-items">{filtered.map((report) => <ReportRow key={report.id} report={report} selected={report.id === selectedReport.id} onClick={() => { setSelectedId(report.id); setNotes(report.operatorNotes || ''); setNotice('') }}/>)}</div></section><div className="portal-review-content"><DmcReportDetails report={selectedReport}/><section className="portal-card portal-validation-card"><div className="portal-card-heading"><div><span className="portal-eyebrow">DMC OFFICER CHECK</span><h2>Duplicate and validity review</h2></div></div><div className={`portal-validation-banner ${duplicate ? 'warning' : 'valid'}`}><span>{duplicate ? <TriangleAlert size={19}/> : <Check size={19}/>}</span><div><b>{duplicate ? 'Possible nearby report' : 'No potential duplicates found'}</b><small>{duplicate ? 'Compare the location and report details before forwarding.' : 'Checked other demo records with the same hazard type in the nearby area.'}</small></div></div><label className="portal-field-label" htmlFor="operator-notes">Validation notes</label><textarea id="operator-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Record location checks, evidence review and any follow-up..."/><div className="portal-review-actions">{selectedReport.status === 'PENDING' && <><button className="portal-button danger-outline" onClick={() => { update({ status: 'REJECTED' }); setNotice('Report rejected and saved in the demo queue.') }}><X size={16}/> Reject</button><button className="portal-button secondary" onClick={() => { update({ status: 'CLARIFICATION_REQUESTED' }); setNotice('Clarification request recorded in the demo queue.') }}>Request clarification</button><button className="portal-button success" onClick={() => { update({ status: 'VERIFIED', validatedAt: new Date().toISOString() }); setNotice('Report accepted. You can now forward it to the Duty Officer.') }}><Check size={16}/> Accept report</button></>}{selectedReport.status === 'VERIFIED' && <button className="portal-button primary" onClick={() => { update({ status: 'FORWARDED_TO_DUTY_OFFICER', forwardedAt: new Date().toISOString() }); setNotice('Report forwarded. It is now visible in the Duty Officer dashboard.') }}>Forward to Duty Officer <ArrowRight size={16}/></button>}{selectedReport.status === 'FORWARDED_TO_DUTY_OFFICER' && <div className="portal-validation-banner valid"><Check size={18}/><b>Forwarded to Duty Officer</b></div>}{selectedReport.status === 'WARNING_ISSUED' && <div className="portal-validation-banner valid"><Check size={18}/><b>Warning issued for this report</b></div>}{['REJECTED', 'CLARIFICATION_REQUESTED'].includes(selectedReport.status) && <button className="portal-button secondary" onClick={() => { update({ status: 'PENDING' }); setNotice('Report returned to the pending queue.') }}>Return to review</button>}</div>{notice && <div className="portal-action-notice" role="status">{notice}</div>}</section></div></div></PortalShell>
+}
+
+export function DutyIncidentReportsPanel({ reports, onIssueWarning }) {
+  const forwarded = reports.filter((report) => ['FORWARDED_TO_DUTY_OFFICER', 'WARNING_ISSUED'].includes(report.status))
+  return <section className="incident-reports-view">
+    <div className="incident-view-heading"><div><span>DUTY OFFICER · INCOMING FROM DMC</span><h1>Incident Reports</h1><p>Reports validated and forwarded by the DMC Officer.</p></div><b>{forwarded.length} reports</b></div>
+    {forwarded.length ? <div className="incident-view-list">{forwarded.map((report) => <article className="incident-view-card" key={report.id}>
+      <span className="incident-view-icon"><TriangleAlert size={20}/></span><div className="incident-view-copy"><div className="incident-view-title"><h2>{report.title}</h2><StatusPill status={report.status}/></div><p>{report.description}</p><div className="incident-view-meta"><span><MapPin size={13}/>{report.areaLabel || report.district}</span><span>{report.disasterType}</span><span>Report {report.reportId || report.id}</span><span>Forwarded {report.forwardedAt ? new Date(report.forwardedAt).toLocaleString('en-LK') : 'by DMC Officer'}</span></div>{report.operatorNotes && <div className="incident-view-notes"><b>DMC validation notes</b><p>{report.operatorNotes}</p></div>}</div>{report.status === 'FORWARDED_TO_DUTY_OFFICER' ? <button className="incident-view-action" onClick={() => onIssueWarning(report)}>Issue Warning <ArrowRight size={15}/></button> : <button className="incident-view-action secondary" onClick={() => onIssueWarning(report)}>View Warning <ArrowRight size={15}/></button>}
+    </article>)}</div> : <div className="incident-view-empty"><ClipboardCheck size={28}/><h2>No forwarded reports yet</h2><p>Once the DMC Officer accepts and forwards a report, it will appear here.</p></div>}
+  </section>
+}

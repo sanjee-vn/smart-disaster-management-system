@@ -1,22 +1,28 @@
-const assert = require("node:assert/strict");
-const { app } = require("../src/app");
-const authRoutes = require("../src/modules/auth/auth.routes");
-const reportRoutes = require("../src/modules/reports/report.routes");
-const resourceCoordinationRoutes = require("../src/routes/resourceCoordinationRoutes");
-const responseOperationsRoutes = require("../src/routes/responseOperationsRoutes");
-
-const mountedRouters = [
-  ["/api/auth", authRoutes],
-  ["/api/reports", reportRoutes],
-  ["/api/resource-coordination", resourceCoordinationRoutes],
-  ["/api/response-operations", responseOperationsRoutes],
+﻿const assert = require("node:assert/strict");
+const app = require("../src/app");
+const routers = [
+  ["/api/auth", require("../src/modules/auth/auth.routes")],
+  ["/api/staff/auth", require("../src/routes/staffAuthRoutes")],
+  ["/api/reports", require("../src/modules/reports/report.routes")],
+  ["/api", require("../src/routes/hazardWarningRoutes")],
+  ["/api/resource-coordination", require("../src/routes/resourceCoordinationRoutes")],
+  ["/api/response-operations", require("../src/routes/responseOperationsRoutes")],
 ];
 const writeMethods = ["post", "put", "patch", "delete"];
-const routeWrites = (prefix, router) => router.stack.filter((layer) => layer.route).flatMap((layer) => Object.keys(layer.route.methods)
-  .filter((method) => writeMethods.includes(method))
-  .map((method) => `${method.toUpperCase()} ${prefix}${layer.route.path === "/" ? "" : layer.route.path}`));
-
-const allowedWriteRoutes = [
+const routesFor = (prefix, router) => router.stack.filter((layer) => layer.route).flatMap((layer) =>
+  Object.keys(layer.route.methods)
+    .filter((method) => writeMethods.includes(method))
+    .map((method) => `${method.toUpperCase()} ${prefix}${layer.route.path === "/" ? "" : layer.route.path}`),
+);
+const expectedWrites = [
+  "PATCH /api/hazards/:id",
+  "PUT /api/hazards/:id/draft",
+  "POST /api/warnings",
+  "POST /api/warnings/:id/retries",
+  "POST /api/warnings/:id/escalations",
+  "POST /api/warnings/:id/cancellation",
+  "POST /api/staff/auth/register",
+  "POST /api/staff/auth/login",
   "POST /api/auth/register",
   "POST /api/auth/login",
   "POST /api/auth/logout",
@@ -28,14 +34,14 @@ const allowedWriteRoutes = [
   "POST /api/response-operations/assignments/dispatch",
 ].sort();
 
-for (const [prefix, router] of mountedRouters) {
+for (const [prefix, router] of routers) {
   assert.ok(app.router.stack.some((layer) => layer.handle === router), `${prefix} router is not mounted on the application`);
 }
-const writeRoutes = mountedRouters.flatMap(([prefix, router]) => routeWrites(prefix, router)).sort();
-const allNestedWriteCount = app.router.stack.flatMap((layer) => layer.route ? [layer] : layer.handle?.stack || [])
+const actualWrites = routers.flatMap(([prefix, router]) => routesFor(prefix, router)).sort();
+const appWriteCount = app.router.stack.flatMap((layer) => layer.route ? [layer] : layer.handle?.stack || [])
   .filter((layer) => layer.route)
   .flatMap((layer) => Object.keys(layer.route.methods).filter((method) => writeMethods.includes(method))).length;
 
-assert.equal(allNestedWriteCount, writeRoutes.length, "An unaccounted mounted mutation route is active");
-assert.deepEqual(writeRoutes, allowedWriteRoutes, `Unexpected active write routes: ${writeRoutes.join(", ")}`);
-console.log("Route safety passed: only the allowed auth, reports, warning, assignment, distribution, and resolution mutations are active.");
+assert.equal(appWriteCount, actualWrites.length, "An unaccounted mounted mutation route is active");
+assert.deepEqual(actualWrites, expectedWrites, `Unexpected active write routes: ${actualWrites.join(", ")}`);
+console.log("Route safety passed: only reviewed citizen, staff, hazard, resource, warning, and response writes are active.");

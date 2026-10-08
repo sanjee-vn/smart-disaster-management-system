@@ -62,3 +62,9 @@ npm run test:coverage
 ```
 
 Tests use mocked database calls and temporary local HTTP servers. They cover hashing, validation, duplicate emails, credentials, invalid/expired/revoked sessions, rate limiting, report ownership, and safe errors. They do not connect to Atlas. The current development API uses local HTTP for Expo Go; a deployed authentication service must use HTTPS.
+
+## Staff warning portal
+
+The web DMC, Duty Officer and District Officer portal uses the staff account endpoints under `/api/staff/auth`. Citizen/mobile registration and login remain under `/api/auth`; both flows share the configured MongoDB database but keep separate account models. The portal roles are `dmc_officer`, `duty_officer` and `district_officer`. Set `JWT_SECRET` to a random value of at least 32 characters in the local ignored `.env` file. Set `MONGODB_DB_NAME=smart_disaster_management` to select the shared project database.
+
+Hazard and warning routes are mounted under `/api`. Resource coordination and response operations remain available under `/api/resource-coordination` and `/api/response-operations` for the other project components.

@@ -5,7 +5,10 @@ import { Icon, ui } from '../components/UI';
 import { useReports } from '../context/ReportsContext';
 import { useAuth } from '../context/AuthContext';
 import { colors as c } from '../theme';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { statusInfo } from '../utils/reports.cjs';
+import { getPublishedAlerts } from '../services/reports';
 
 function greeting() {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Colombo', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
@@ -17,9 +20,15 @@ const ACTIONS = [
   { title: 'Emergency Contacts', icon: 'call-outline', route: 'Contacts', tint: '#F8BDBD', color: '#B43135' },
 ];
 export default function HomeScreen({ navigation }) {
-  const { reports, loading } = useReports();
+  const { reports, loading, reload } = useReports();
+  const [alerts, setAlerts] = useState([]);
+  useFocusEffect(useCallback(() => {
+    void reload();
+    getPublishedAlerts().then(setAlerts).catch(() => setAlerts([]));
+  }, [reload]));
   const { user } = useAuth();
   const latest = reports[0];
+  const latestAlert = alerts[0];
   const status = latest ? statusInfo(latest.status) : null;
   return <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -35,12 +44,12 @@ export default function HomeScreen({ navigation }) {
       </LinearGradient>
 
       <View style={s.body}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Alert status: live feed unavailable. View official alert information" onPress={() => navigation.navigate('Alerts')} style={({ pressed }) => [s.alert, pressed && s.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={latestAlert ? `View alert: ${latestAlert.title}` : 'View alerts and updates'} onPress={() => navigation.navigate('Alerts')} style={({ pressed }) => [s.alert, pressed && s.pressed]}>
           <View style={s.alertStripe} />
           <View style={s.alertTop}><View style={s.alertBadge}><Icon name="warning-outline" size={16} color="#8F5E15" /><Text style={s.alertLabel}>ALERTS & WARNINGS</Text></View><Icon name="arrow-forward" size={20} color="#8F5E15" /></View>
-          <Text style={s.alertTitle}>Stay aware. Check official alerts.</Text>
-          <Text style={s.alertDescription}>Live alerts are not connected. We cannot confirm whether your area is clear.</Text>
-          <View style={s.alertBottom}><View style={s.feedState}><View style={s.amberDot} /><Text style={s.feedText}>Live feed unavailable</Text></View><Text style={s.alertLink}>View alerts →</Text></View>
+          <Text style={s.alertTitle}>{latestAlert?.title || 'No published alerts'}</Text>
+          <Text style={s.alertDescription}>{latestAlert?.message || 'Published DMC warnings and safety updates will appear here.'}</Text>
+          <View style={s.alertBottom}><View style={s.feedState}><View style={s.amberDot} /><Text style={s.feedText}>{latestAlert ? `${latestAlert.level} · ${latestAlert.district}` : 'Alert feed connected'}</Text></View><Text style={s.alertLink}>View alerts →</Text></View>
         </Pressable>
 
         <Pressable accessibilityRole="button" accessibilityLabel="Report an Incident" onPress={() => navigation.navigate('ReportIncident')} style={({ pressed }) => [s.reportAction, pressed && s.pressed]}>

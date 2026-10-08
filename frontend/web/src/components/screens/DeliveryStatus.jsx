@@ -1,9 +1,71 @@
-import { Activity, ArrowRight, CheckCircle2, Clock3, Download, House, MessageSquare, Siren, Smartphone, Users, X } from 'lucide-react';
+import { Activity, ArrowRight, CheckCircle2, Clock3, Download, House, MessageSquare, Siren, Smartphone, Users, X } from 'lucide-react'
+
+const channelIcon = (channel) => {
+  if (channel === 'SMS Alert') return MessageSquare
+  if (channel === 'Audible / Siren') return Siren
+  return Smartphone
+}
+
+const auditLabel = (event) => ({
+  PUBLISHED: 'Warning recorded and queued',
+  RETRY_QUEUED: event.message,
+  ESCALATED: 'Marked for regional review',
+  CANCELLED: 'Warning cancelled',
+}[event.type] || event.message)
 
 export default function DeliveryScreen(props) {
-  const { Header, Badge, Button, MapPanel, setWarnings, issuedWarning, navigate, retryChannel, setModal, setToast } = props;
-const item = issuedWarning
-    if (!item) return <div className="empty-warning panel"><CheckCircle2 size={40}/><h2>No published warning selected</h2><p>Start the assessment workflow to create a warning.</p><Button variant="primary" onClick={() => navigate('dashboard', 'Dashboard')}>Return to dashboard</Button></div>
-    return <><Header title="Warning Issued & Delivery Status" eyebrow="WARNING MONITORING · LIVE DELIVERY" actions={<Badge tone={item.status}>{item.status}</Badge>} /><div className="summary-band delivery-band"><div><span>Warning ID</span><strong>{item.id}</strong></div><div><span>Hazard ID</span><strong>{item.hazardId}</strong></div><div><span>Warning level</span><Badge tone={item.level}>{item.level}</Badge></div><div><span>Current status</span><Badge tone={item.status}>{item.status}</Badge></div></div><div className="delivery-stats"><div><Users/><b>{item.target.toLocaleString()}</b><span>Total target citizens</span></div><div><CheckCircle2/><b>{item.delivered.toLocaleString()}</b><span>Delivered <small>{(item.delivered / item.target * 100).toFixed(1)}%</small></span></div><div><Clock3/><b>{item.pending.toLocaleString()}</b><span>Pending <small>{(item.pending / item.target * 100).toFixed(1)}%</small></span></div><div><X/><b>{item.failed.toLocaleString()}</b><span>Failed <small>{(item.failed / item.target * 100).toFixed(1)}%</small></span></div></div>
-      <div className="delivery-grid"><section className="panel delivery-table-panel"><div className="panel-heading"><div><h2>Delivery status by channel</h2><p>Progress by selected channel</p></div><button className="icon-button" aria-label="Download delivery report" onClick={() => setToast('Delivery report downloaded')}><Download size={17}/></button></div><div className="table-wrap"><table><thead><tr><th>Channel</th><th>Targeted</th><th>Delivered</th><th>Pending</th><th>Failed</th><th>Retry status</th></tr></thead><tbody>{item.channels.map((channel, index) => <tr key={channel}><td><span className="hazard-type-icon">{index === 1 ? <MessageSquare size={16}/> : index === 2 ? <Siren size={16}/> : <Smartphone size={16}/>} {channel}</span></td><td>{(index === 2 ? Math.round(item.target * .1) : item.target).toLocaleString()}</td><td>{Math.round(item.delivered * (index === 2 ? .1 : 1)).toLocaleString()}</td><td>{Math.round(item.pending * (index === 2 ? .1 : 1)).toLocaleString()}</td><td>{Math.round(item.failed * (index === 2 ? .1 : 1)).toLocaleString()}</td><td><button className="retry-link" onClick={() => retryChannel(item.id, channel)}>Retry now <ArrowRight size={13}/></button></td></tr>)}</tbody></table></div><div className="failed-summary"><b>Failed delivery / retry summary</b>{item.channels.map((channel) => <div key={channel}><span>{channel} · {item.failed.toLocaleString()} failed</span><Button variant="secondary-blue" onClick={() => retryChannel(item.id, channel)}>Retry now</Button></div>)}</div></section><section className="panel coverage-panel"><div className="panel-heading"><div><h2>Geographic coverage</h2><p>Target areas receiving this warning</p></div></div><MapPanel compact pins={4}/><div className="coverage-legend"><i className="coverage-swatch"/> Affected areas <span>{item.areas.join(', ')}</span></div></section><section className="panel audit-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Warning audit timeline</p></div></div><div className="timeline"><div><i className="timeline-dot blue"/><span>Just now · Warning published</span><p>Warning sent to {item.target.toLocaleString()} target citizens across selected areas.</p></div><div><i className="timeline-dot blue"/><span>10:14 AM · Delivery started</span><p>Channels validated and delivery process initiated.</p></div><div><i className="timeline-dot amber"/><span>10:12 AM · Approved</span><p>Hazard and public guidance confirmed by Assessment Officer.</p></div><div><i className="timeline-dot slate"/><span>10:10 AM · Draft created</span><p>Warning prepared for {item.district}.</p></div></div></section><section className="panel escalation-panel"><div className="panel-heading"><div><h2>Escalation & cancellation</h2><p>Manage this published warning</p></div></div><p>{item.escalated ? 'Escalation is active. The regional authority has been notified.' : item.status === 'Cancelled' ? 'This warning has been cancelled and delivery has stopped.' : 'Delivery monitoring is in progress. Escalate if the risk level increases or cancel if conditions improve.'}</p><div><Button variant="secondary-blue" icon={ArrowRight} disabled={Boolean(item.escalated) || item.status === 'Cancelled'} onClick={() => setModal('escalate')}>{item.escalated ? 'Escalated' : 'Escalate warning'}</Button><Button variant="secondary" icon={X} disabled={item.status === 'Cancelled'} onClick={() => setModal('cancel-warning')}>Cancel warning</Button></div></section></div><div className="workflow-actions delivery-actions"><Button variant="teal-button" icon={Activity} onClick={() => { setWarnings((current) => [...current]); setToast('Delivery status refreshed') }}>Refresh status</Button><Button variant="primary" icon={House} onClick={() => navigate('dashboard', 'Dashboard')}>Return to dashboard</Button></div></>
+  const { Header, Badge, Button, MapPanel, issuedWarning, navigate, retryChannel, refreshData, setModal, setToast } = props
+  const item = issuedWarning
+
+  if (!item) {
+    return <div className="empty-warning panel"><CheckCircle2 size={40}/><h2>No published warning selected</h2><p>Start the assessment workflow to create a warning.</p><Button variant="primary" onClick={() => navigate('dashboard', 'Dashboard')}>Return to dashboard</Button></div>
+  }
+
+  const deliveryChannels = item.deliveryChannels || []
+  const auditEvents = [...(item.audit || [])].reverse().slice(0, 5)
+
+  return <>
+    <Header title="Warning Issued & Delivery Status" eyebrow="WARNING MONITORING · DELIVERY QUEUE" actions={<Badge tone={item.status}>{item.status}</Badge>} />
+    <div className="summary-band delivery-band">
+      <div><span>Warning ID</span><strong>{item.id}</strong></div>
+      <div><span>Hazard ID</span><strong>{item.hazardId}</strong></div>
+      <div><span>Warning level</span><Badge tone={item.level}>{item.level}</Badge></div>
+      <div><span>Current status</span><Badge tone={item.status}>{item.status}</Badge></div>
+    </div>
+    <div className="api-status-banner"><span>Warning data is saved. No SMS, push, or siren delivery provider is connected in this build.</span></div>
+    <div className="delivery-stats">
+      <div><Users/><b>{item.target.toLocaleString()}</b><span>Total target citizens</span></div>
+      <div><CheckCircle2/><b>{item.delivered.toLocaleString()}</b><span>Delivered</span></div>
+      <div><Clock3/><b>{item.pending.toLocaleString()}</b><span>Pending</span></div>
+      <div><X/><b>{item.failed.toLocaleString()}</b><span>Failed</span></div>
+    </div>
+    <div className="delivery-grid">
+      <section className="panel delivery-table-panel">
+        <div className="panel-heading"><div><h2>Delivery status by channel</h2><p>Recorded counts and retry requests</p></div><button className="icon-button" aria-label="Download delivery report" onClick={() => setToast('Delivery report is not available yet.')}><Download size={17}/></button></div>
+        <div className="table-wrap"><table><thead><tr><th>Channel</th><th>Targeted</th><th>Delivered</th><th>Pending</th><th>Failed</th><th>Retry requests</th></tr></thead><tbody>
+          {deliveryChannels.map((channel) => {
+            const Icon = channelIcon(channel.channel)
+            return <tr key={channel.channel}>
+              <td><span className="hazard-type-icon"><Icon size={16}/>{channel.channel}</span></td>
+              <td>{channel.target.toLocaleString()}</td>
+              <td>{channel.delivered.toLocaleString()}</td>
+              <td>{channel.pending.toLocaleString()}</td>
+              <td>{channel.failed.toLocaleString()}</td>
+              <td><button className="retry-link" disabled={item.status !== 'Published'} onClick={() => retryChannel(item.id, channel.channel)}>Queue retry ({channel.retryCount}) <ArrowRight size={13}/></button></td>
+            </tr>
+          })}
+        </tbody></table></div>
+        <div className="failed-summary"><b>Retry queue</b>{deliveryChannels.map((channel) => <div key={channel.channel}><span>{channel.channel} · {channel.retryCount} queued</span><Button variant="secondary-blue" disabled={item.status !== 'Published'} onClick={() => retryChannel(item.id, channel.channel)}>Queue retry</Button></div>)}</div>
+      </section>
+      <section className="panel coverage-panel"><div className="panel-heading"><div><h2>Geographic coverage</h2><p>Target areas selected for this warning</p></div></div><MapPanel compact pins={4}/><div className="coverage-legend"><i className="coverage-swatch"/> Affected areas <span>{item.areas.join(', ')}</span></div></section>
+      <section className="panel audit-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Saved warning audit history</p></div></div><div className="timeline">
+        {auditEvents.length ? auditEvents.map((event, index) => <div key={`${event.type}-${event.occurredAt}-${index}`}><i className={`timeline-dot ${event.type === 'CANCELLED' ? 'slate' : event.type === 'RETRY_QUEUED' ? 'amber' : 'blue'}`}/><span>{new Date(event.occurredAt).toLocaleString()}</span><p>{auditLabel(event)}</p></div>) : <p>No activity recorded.</p>}
+      </div></section>
+      <section className="panel escalation-panel"><div className="panel-heading"><div><h2>Escalation & cancellation</h2><p>Update the warning record</p></div></div>
+        <p>{item.escalated ? 'This warning is marked for regional review.' : item.status === 'Cancelled' ? 'This warning has been cancelled.' : 'Mark this warning for review or cancel it if conditions improve.'}</p>
+        <div><Button variant="secondary-blue" icon={ArrowRight} disabled={Boolean(item.escalated) || item.status === 'Cancelled'} onClick={() => setModal('escalate')}>{item.escalated ? 'Marked for review' : 'Mark for review'}</Button><Button variant="secondary" icon={X} disabled={item.status === 'Cancelled'} onClick={() => setModal('cancel-warning')}>Cancel warning</Button></div>
+      </section>
+    </div>
+    <div className="workflow-actions delivery-actions"><Button variant="teal-button" icon={Activity} onClick={() => { void refreshData(); setToast('Refreshing warning records…') }}>Refresh status</Button><Button variant="primary" icon={House} onClick={() => navigate('dashboard', 'Dashboard')}>Return to dashboard</Button></div>
+  </>
 }
