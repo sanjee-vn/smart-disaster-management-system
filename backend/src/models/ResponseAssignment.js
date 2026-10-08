@@ -7,6 +7,7 @@ const responseAssignmentSchema = new mongoose.Schema({
   priority: { type: String, trim: true },
   destination: { type: String, trim: true },
   instructions: { type: String, trim: true },
+  requiredCapabilities: [{ type: String, enum: ["RESCUE", "POLICE", "ARMED_FORCES", "FIRE_RESCUE", "MEDICAL", "SHELTER", "EVACUATION", "FOOD", "WATER", "MEDICINE"] }],
   status: { type: String, required: true, enum: ["PLANNED", "DISPATCHED", "IN_PROGRESS", "COMPLETED"] },
   dispatchedAt: Date,
   eta: Date,

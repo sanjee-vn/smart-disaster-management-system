@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { getAssignments, getIncidents, getTeams } from '../services/responseOperationsService'
-import { getDistributions, getShelters } from '../services/resourceCoordinationService'
+import { getDeliveryResources, getDistributions, getInventory, getShelters } from '../services/resourceCoordinationService'
 
-const emptyData = { incidents: [], assignments: [], teams: [], shelters: [], distributions: [] }
+const emptyData = { incidents: [], assignments: [], teams: [], shelters: [], distributions: [], inventory: [], deliveryResources: [] }
 
-export default function useResponseOperationsDashboard() {
+export default function useResponseOperationsDashboard(includeResourceDetails = false) {
   const [data, setData] = useState(emptyData)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(true)
@@ -14,6 +14,10 @@ export default function useResponseOperationsDashboard() {
     let active = true
     const requests = [getIncidents(), getAssignments({}), getTeams(), getShelters()]
     const keys = ['incidents', 'assignments', 'teams', 'shelters']
+    if (includeResourceDetails) {
+      requests.push(getInventory(), getDeliveryResources())
+      keys.push('inventory', 'deliveryResources')
+    }
     Promise.allSettled(requests).then(async (results) => {
       if (!active) return
       const nextData = { ...emptyData }
@@ -34,7 +38,7 @@ export default function useResponseOperationsDashboard() {
       setLoading(false)
     })
     return () => { active = false }
-  }, [reloadKey])
+  }, [includeResourceDetails, reloadKey])
 
   const retry = () => {
     setLoading(true)

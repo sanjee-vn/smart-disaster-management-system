@@ -22,6 +22,7 @@ const allowedWriteRoutes = [
   "POST /api/auth/logout",
   "POST /api/reports",
   "POST /api/resource-coordination/distributions",
+  "PATCH /api/resource-coordination/distributions/:distributionId/deliver",
   "PATCH /api/response-operations/warnings/:warningId",
   "POST /api/response-operations/incidents/:incidentId/resolve",
   "POST /api/response-operations/assignments/dispatch",

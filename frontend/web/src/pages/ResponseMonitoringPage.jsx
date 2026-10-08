@@ -43,7 +43,7 @@ export default function ResponseMonitoringPage() {
 
   if (!incidentId) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle /><h3>Incident ID is missing</h3></div></div></DashboardLayout>
   if (loading && !incident) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading response monitoring" /></div></DashboardLayout>
-  if (error || !incident) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle /><h3>Unable to load response monitoring</h3><p>{error}</p><button className="btn btn-primary" onClick={refresh}><RefreshCw size={14} /> Retry</button></div></div></DashboardLayout>
+  if (error || !incident) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle /><h3>Unable to load response monitoring</h3><p>{error}</p><button className="btn btn-primary" onClick={refresh}><RefreshCw size={14} /> Retry</button><button className="btn btn-secondary" onClick={() => navigate('/response-operations')}><ArrowLeft size={14} /> Response Operations</button></div></div></DashboardLayout>
 
   const resolved = incident.status === 'RESOLVED'
   const resolvable = assignment && ['DISPATCHED', 'IN_PROGRESS'].includes(assignment.status) && !resolved

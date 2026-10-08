@@ -18,4 +18,13 @@ const listDistributions = async (req, res, next) => {
   }
 };
 
-module.exports = { createDistribution, listDistributions };
+const markDelivered = async (req, res, next) => {
+  try {
+    const distribution = await distributionService.markDistributionDelivered(req.params.distributionId, req.body);
+    res.json({ success: true, data: distribution });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createDistribution, listDistributions, markDelivered };

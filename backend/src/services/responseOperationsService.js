@@ -121,6 +121,7 @@ const getAssignments = async ({ incidentId }) => {
     teams: assignment.teamIds.map(formatTeam), priority: assignment.priority || null,
     destination: assignment.destination || null, instructions: assignment.instructions || null,
     status: assignment.status, dispatchedAt: assignment.dispatchedAt || null,
+    requiredCapabilities: assignment.requiredCapabilities || [],
     eta: assignment.eta || null, createdAt: assignment.createdAt,
   }));
 };
@@ -131,7 +132,7 @@ const formatAssignment = (assignment) => ({
   status: assignment.status, priority: assignment.priority,
   destination: assignment.destination, instructions: assignment.instructions,
   teams: assignment.teamIds.map(formatTeam), dispatchedAt: assignment.dispatchedAt,
-  eta: assignment.eta,
+  requiredCapabilities: assignment.requiredCapabilities || [], eta: assignment.eta,
 });
 
 const dispatchResponseAssignment = async (payload = {}) => {
@@ -142,6 +143,8 @@ const dispatchResponseAssignment = async (payload = {}) => {
   const instructions = typeof payload.instructions === "string" ? payload.instructions.trim() : "";
   const eta = new Date(payload.eta);
   const teamIds = Array.isArray(payload.teamIds) ? payload.teamIds : [];
+  const requiredCapabilities = Array.isArray(payload.requiredCapabilities) ? payload.requiredCapabilities : [];
+  const allowedCapabilities = new Set(["RESCUE", "POLICE", "ARMED_FORCES", "FIRE_RESCUE", "MEDICAL", "SHELTER", "EVACUATION", "FOOD", "WATER", "MEDICINE"]);
 
   if (!incidentId) throw createError("Incident ID is required", 400, "INCIDENT_NOT_FOUND");
   if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(priority)) throw createError("Priority must be LOW, MEDIUM, HIGH, or CRITICAL", 400, "INVALID_PRIORITY");
@@ -151,6 +154,8 @@ const dispatchResponseAssignment = async (payload = {}) => {
   if (teamIds.length === 0) throw createError("At least one response team is required", 400, "NO_TEAMS_SELECTED");
   if (teamIds.some((id) => !mongoose.isValidObjectId(id))) throw createError("One or more response team IDs are invalid", 400, "RESPONSE_TEAM_NOT_FOUND");
   if (new Set(teamIds.map(String)).size !== teamIds.length) throw createError("Duplicate response teams are not allowed", 400, "DUPLICATE_TEAM_SELECTION");
+  if (requiredCapabilities.some((capability) => typeof capability !== "string" || !allowedCapabilities.has(capability))) throw createError("One or more response requirements are invalid", 400, "INVALID_RESPONSE_REQUIREMENT");
+  if (new Set(requiredCapabilities).size !== requiredCapabilities.length) throw createError("Duplicate response requirements are not allowed", 400, "DUPLICATE_RESPONSE_REQUIREMENT");
 
   let assignmentId;
   try {
@@ -177,7 +182,7 @@ const dispatchResponseAssignment = async (payload = {}) => {
       if (deployment.modifiedCount !== teamIds.length) throw createError("One or more selected teams are no longer available", 409, "TEAM_UNAVAILABLE");
 
       const now = new Date();
-      const update = { teamIds, priority, destination, instructions, eta, status: "DISPATCHED", dispatchedAt: now };
+      const update = { teamIds, priority, destination, instructions, requiredCapabilities, eta, status: "DISPATCHED", dispatchedAt: now };
       let savedAssignment;
       if (assignment) {
         savedAssignment = await repository.updatePlannedAssignment(assignment._id, update, session);

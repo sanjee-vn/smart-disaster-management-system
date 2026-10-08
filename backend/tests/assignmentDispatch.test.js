@@ -18,6 +18,7 @@ const validPayload = {
   incidentId: "INC-TEST-01", responseId: "RSP-TEST-01",
   teamIds: teamObjectIds.map(String), priority: "CRITICAL",
   destination: "Colombo Flood Zone", instructions: "Deploy for rescue operations.",
+  requiredCapabilities: ["RESCUE", "MEDICAL", "FOOD", "WATER"],
   eta: "2026-10-08T10:00:00.000Z",
 };
 
@@ -70,6 +71,8 @@ const run = async () => {
   assert.equal(state.assignment.status, "DISPATCHED");
   assert.ok(state.teams.every((team) => team.status === "DEPLOYED"));
   assert.equal(state.incident.status, "RESPONSE_IN_PROGRESS");
+  assert.deepEqual(result.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
+  assert.deepEqual(state.assignment.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
 
   reset(); state.incident = null;
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "INCIDENT_NOT_FOUND");
@@ -88,6 +91,12 @@ const run = async () => {
 
   reset();
   await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, priority: "URGENT" }), "INVALID_PRIORITY");
+
+  reset();
+  await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, requiredCapabilities: ["FOOD", "INVALID"] }), "INVALID_RESPONSE_REQUIREMENT");
+
+  reset();
+  await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, requiredCapabilities: ["WATER", "WATER"] }), "DUPLICATE_RESPONSE_REQUIREMENT");
 
   reset();
   await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, eta: "not-a-date" }), "INVALID_ETA");
