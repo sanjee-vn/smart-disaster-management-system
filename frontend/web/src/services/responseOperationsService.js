@@ -39,3 +39,8 @@ export const dispatchResponseAssignment = async (payload) => {
   const response = await api.post('/response-operations/assignments/dispatch', payload)
   return response.data.data
 }
+
+export const resolveResponse = async (incidentId) => {
+  const response = await api.post(`/response-operations/incidents/${incidentId}/resolve`)
+  return response.data.data
+}

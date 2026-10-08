@@ -13,7 +13,7 @@ export default function CreateDistributionPage() {
   const { incidentId, shelterId } = useParams()
   const navigate = useNavigate()
   const { state } = useLocation()
-  const editDraft = state?.editDraft
+  const editDraft = state?.editDraft?.shelterId === shelterId && (!incidentId || state.editDraft.incidentId === incidentId) ? state.editDraft : null
   const contextIncidentId = incidentId || editDraft?.incidentId
   const { context: incidentContext, loading: contextLoading, error: contextError } = useIncidentResponseContext(contextIncidentId)
   const responseContext = incidentContext || state?.responseContext || (editDraft ? {

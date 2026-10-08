@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const distributionSchema = new mongoose.Schema({
   distributionId: { type: String, required: true, unique: true, index: true },
   requestId: { type: String, unique: true, sparse: true, index: true },
+  incidentId: { type: mongoose.Schema.Types.ObjectId, ref: "Incident", required: true, index: true },
+  responseAssignmentId: { type: mongoose.Schema.Types.ObjectId, ref: "ResponseAssignment", default: null },
   shelterId: { type: mongoose.Schema.Types.ObjectId, ref: "Shelter", required: true },
   inventoryItemId: { type: mongoose.Schema.Types.ObjectId, ref: "InventoryItem", required: true },
   resourceOwnerId: { type: mongoose.Schema.Types.ObjectId, ref: "ResourceOwner", required: true },
@@ -12,6 +14,7 @@ const distributionSchema = new mongoose.Schema({
   eta: Date,
   notes: { type: String, trim: true, maxlength: 500 },
   createdBy: { type: String, required: true, default: "District Officer" },
+  issuedAt: { type: Date, required: true, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 });
 

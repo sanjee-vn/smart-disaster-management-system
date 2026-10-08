@@ -52,7 +52,7 @@ const seed = async () => {
       }).select("_id");
       await Shelter.findOneAndUpdate(
         existing ? { _id: existing._id } : { incidentId, shelterId: shelter.shelterId },
-        { $set: shelter },
+        { $setOnInsert: shelter },
         { upsert: true, returnDocument: "after", runValidators: true }
       );
     }

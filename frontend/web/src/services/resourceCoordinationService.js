@@ -29,3 +29,13 @@ export const getDeliveryResourceById = async (id) => {
   const response = await api.get(`/resource-coordination/delivery-resources/${id}`)
   return response.data.data
 }
+
+export const commitDistribution = async (payload) => {
+  const response = await api.post('/resource-coordination/distributions', payload)
+  return response.data.data
+}
+
+export const getDistributions = async (incidentId) => {
+  const response = await api.get('/resource-coordination/distributions', { params: { incidentId } })
+  return response.data.data
+}
