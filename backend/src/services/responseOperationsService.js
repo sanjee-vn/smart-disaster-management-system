@@ -5,9 +5,12 @@ const createError = (message, status, code) => Object.assign(new Error(message),
 
 const formatWarning = (warning) => ({
   id: warning._id.toString(), warningId: warning.warningId, hazardType: warning.hazardType,
-  severity: warning.severity, targetArea: warning.targetArea, district: warning.district,
-  message: warning.message || null,
-  status: warning.status, issuedBy: warning.issuedBy || null, issuedAt: warning.issuedAt || null,
+  severity: warning.severity || (warning.level === "Very High" ? "EMERGENCY" : warning.level === "High" ? "WARNING" : "WATCH"),
+  targetArea: warning.targetArea || warning.areas?.join(", ") || null,
+  district: warning.district,
+  message: warning.message || warning.warning?.message || null,
+  status: warning.status === "Published" ? "ACTIVE" : warning.status,
+  issuedBy: warning.issuedBy || null, issuedAt: warning.issuedAt || warning.createdAt || null,
   updatedAt: warning.updatedAt || null, createdAt: warning.createdAt,
 });
 

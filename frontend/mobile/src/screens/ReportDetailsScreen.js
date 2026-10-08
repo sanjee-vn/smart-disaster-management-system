@@ -1,12 +1,15 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
+import { useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Button, Card, EmptyState, Icon, LoadingState, Notice, Screen, SectionTitle, StatusBadge, ui } from '../components/UI';
 import { useReports } from '../context/ReportsContext';
 import { coordinatesLabel, DISASTERS, formatDate, reportTimeline } from '../utils/reports.cjs';
 import { colors as c } from '../theme';
 
 export default function ReportDetailsScreen({ route, navigation }) {
-  const { reports, loading } = useReports();
+  const { reports, loading, reload } = useReports();
+  useFocusEffect(useCallback(() => { void reload(); }, [reload]));
   const [photoError, setPhotoError] = useState(false);
   const report = reports.find(item => item._id === route.params?.reportId);
   if (loading && !report) return <Screen insetTop={false} title="Report details"><LoadingState /></Screen>;
@@ -15,7 +18,7 @@ export default function ReportDetailsScreen({ route, navigation }) {
   const photoUrl = report.photo && /^https?:\/\//i.test(report.photo) ? report.photo : null;
   return <Screen insetTop={false} title="Report details" subtitle="Your incident submission">
     <Card><View style={ui.row}><View style={styles.category}><Icon name={category.icon} color={category.color} size={28} /></View><Text style={ui.overline}>{report.disasterType.toUpperCase()}</Text></View><Text style={styles.title}>{report.title}</Text><View style={{ alignSelf: 'flex-start' }}><StatusBadge status={report.status} /></View></Card>
-    <Notice>Status shown is the last recorded value on this device, not a live verification update.</Notice>
+    <Notice>This status is synchronized with the latest DMC review.</Notice>
     <Card><SectionTitle title="What you observed" /><Text style={ui.muted}>{report.description}</Text></Card>
     <Card><SectionTitle title="Incident location" /><View style={ui.row}><Icon name="location-outline" /><Text selectable style={ui.muted}>{coordinatesLabel(report)}</Text></View><Button title="Show on map" secondary icon="map-outline" onPress={() => navigation.popTo('MainTabs', { screen: 'Map', params: { reportId: report._id } })} /></Card>
     {report.photo && <Card><SectionTitle title="Attached photo" />{photoUrl && !photoError ? <Image accessibilityLabel="Incident photograph" source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" onError={() => setPhotoError(true)} /> : <Text style={ui.muted}>The attached photo is not available on this device.</Text>}</Card>}

@@ -2,13 +2,17 @@ import { AlertTriangle, ArrowRight, Bell, ChevronLeft, ChevronRight, Clock3, Clo
 
 export default function DashboardScreen(props) {
   const { Header, Badge, Button, MapPanel, hazards, setSelectedHazardId, filter, setFilter, filteredHazards, navigate, beginWarning, setModal, setToast, setPage, page } = props;
+  const activeHazardCount = hazards.filter((hazard) => ['Active', 'Monitoring', 'Pending'].includes(hazard.status)).length;
+  const pendingWarningCount = props.warnings.filter((warning) => warning.status === 'Published').length;
+  const severeHazardCount = hazards.filter((hazard) => hazard.severity === 'High').length;
+  const districtCount = new Set(hazards.map((hazard) => hazard.district)).size;
   return <>
     <Header title="Hazard Monitoring Dashboard" actions={<div className="updated"><Clock3 size={17} /><span><b>Last updated</b><small>Today, 10:30 AM</small></span></div>} />
     <div className="stat-grid">
-      <div className="stat-card"><span className="stat-icon danger"><AlertTriangle /></span><div><small>Active hazards</small><strong>{hazards.filter((h) => ['Active', 'Monitoring', 'Pending'].includes(h.status)).length + 2}</strong><p>across 8 districts</p></div><span className="stat-trend">+2 today</span></div>
-      <div className="stat-card"><span className="stat-icon amber"><Bell /></span><div><small>Pending warnings</small><strong>5</strong><p>2 need review</p></div><span className="stat-trend neutral">Needs attention</span></div>
-      <div className="stat-card"><span className="stat-icon slate"><Users /></span><div><small>Severe incidents</small><strong>3</strong><p>1 escalation active</p></div><span className="stat-trend neutral">Last 24 hours</span></div>
-      <div className="stat-card"><span className="stat-icon teal"><MapPin /></span><div><small>Target districts</small><strong>8</strong><p>of 25 nationwide</p></div><span className="stat-trend">Live coverage</span></div>
+      <div className="stat-card"><span className="stat-icon danger"><AlertTriangle /></span><div><small>Active hazards</small><strong>{activeHazardCount}</strong><p>across {districtCount} districts</p></div><span className="stat-trend">Current records</span></div>
+      <div className="stat-card"><span className="stat-icon amber"><Bell /></span><div><small>Published warnings</small><strong>{pendingWarningCount}</strong><p>active records</p></div><span className="stat-trend neutral">Review status</span></div>
+      <div className="stat-card"><span className="stat-icon slate"><Users /></span><div><small>Severe incidents</small><strong>{severeHazardCount}</strong><p>high severity</p></div><span className="stat-trend neutral">Current records</span></div>
+      <div className="stat-card"><span className="stat-icon teal"><MapPin /></span><div><small>Target districts</small><strong>{districtCount}</strong><p>represented in records</p></div><span className="stat-trend">Current coverage</span></div>
     </div>
     <section className="filter-bar"><div className="search-field"><Search size={17} /><input aria-label="Search hazards" placeholder="Search by ID, type or location..." value={filter.search} onChange={(event) => setFilter({ ...filter, search: event.target.value })} /></div>
       <select aria-label="Filter by hazard type" value={filter.type} onChange={(event) => setFilter({ ...filter, type: event.target.value })}><option>All types</option>{[...new Set(hazards.map((h) => h.type))].map((type) => <option key={type}>{type}</option>)}</select>

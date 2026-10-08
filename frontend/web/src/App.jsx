@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, CheckCircle2, MoreHorizontal, Send, X } from 'lucide-react';
-import { Badge, Button, Field, Header, MapPanel } from './components/ui.jsx';
-import SdewsLayout from './components/SdewsLayout.jsx';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Menu, MoreHorizontal, Send, Siren, X, Activity } from 'lucide-react';
+import { Badge, Brand, Button, Field, Header, MapPanel } from './components/ui.jsx';
 import DashboardScreen from './components/screens/Dashboard.jsx';
 import HazardDetailsScreen from './components/screens/HazardDetails.jsx';
 import EventAssessmentScreen from './components/screens/EventAssessment.jsx';
@@ -11,37 +10,26 @@ import AffectedAreaScreen from './components/screens/AffectedArea.jsx';
 import WarningReviewScreen from './components/screens/WarningReview.jsx';
 import DeliveryStatusScreen from './components/screens/DeliveryStatus.jsx';
 import WarningRegisterScreen from './components/screens/WarningRegister.jsx';
-import PlaceholderPageScreen from './components/screens/PlaceholderPage.jsx';
-import ResourceCoordinationDashboard from './pages/ResourceCoordinationDashboard';
-import CreateDistributionPage from './pages/CreateDistributionPage';
-import ReviewDistributionPage from './pages/ReviewDistributionPage';
-import ProcessingDistributionPage from './pages/ProcessingDistributionPage';
-import DistributionSuccessPage from './pages/DistributionSuccessPage';
-import WarningReviewPage from './pages/WarningReviewPage';
-import ConfigureWarningPage from './pages/ConfigureWarningPage';
-import WarningStatusPage from './pages/WarningStatusPage';
-import ResponseOperationsDashboard from './pages/ResponseOperationsDashboard';
-import IncidentPlanningPage from './pages/IncidentPlanningPage';
-import TeamSelectionPage from './pages/TeamSelectionPage';
-import ResponseAssignmentPage from './pages/ResponseAssignmentPage';
-import ShelterCoordinationPage from './pages/ShelterCoordinationPage';
-import ResponseMonitoringPage from './pages/ResponseMonitoringPage';
-import OperationalRequestsPage from './pages/OperationalRequestsPage';
-import DistrictResourceDashboard from './pages/DistrictResourceDashboard';
+import useHazardWarningData from './hooks/useHazardWarningData';
+import { getApiErrorMessage } from './services/apiClient';
+import { DmcReportReviewPage, DutyIncidentReportsPanel } from './pages/DemoRolePortals.jsx';
+import AuthPage from './pages/AuthPages.jsx';
+import { clearAuthSession, readAuthSession, saveAuthSession } from './services/authService';
+import { getGroundReports, reviewGroundReport } from './services/reportWorkflowService';
+import ResponseOperationsDashboard from './pages/ResponseOperationsDashboard.jsx';
+import IncidentPlanningPage from './pages/IncidentPlanningPage.jsx';
+import TeamSelectionPage from './pages/TeamSelectionPage.jsx';
+import ResponseAssignmentPage from './pages/ResponseAssignmentPage.jsx';
+import ShelterCoordinationPage from './pages/ShelterCoordinationPage.jsx';
+import ResourceCoordinationDashboard from './pages/ResourceCoordinationDashboard.jsx';
+import CreateDistributionPage from './pages/CreateDistributionPage.jsx';
+import ReviewDistributionPage from './pages/ReviewDistributionPage.jsx';
+import ProcessingDistributionPage from './pages/ProcessingDistributionPage.jsx';
+import DistributionSuccessPage from './pages/DistributionSuccessPage.jsx';
+import ResponseMonitoringPage from './pages/ResponseMonitoringPage.jsx';
+import OperationalRequestsPage from './pages/OperationalRequestsPage.jsx';
+import DistrictResourceDashboard from './pages/DistrictResourceDashboard.jsx';
 import './App.css';
-
-const initialHazards = [
-  { id: 'HZ-2024-001', type: 'Heavy Rainfall', district: 'Colombo', severity: 'High', status: 'Monitoring', updated: '10:30 AM', population: '18,400', confidence: 'High', description: 'Persistent heavy rainfall is raising water levels across low-lying areas. Field teams are monitoring drainage and river conditions.', source: 'Department of Meteorology', ds: 'Colombo', location: '6.9271 N, 79.8612 E' },
-  { id: 'HZ-2024-002', type: 'Flood', district: 'Gampaha', severity: 'High', status: 'Active', updated: '10:24 AM', population: '25,000+', confidence: 'High', description: 'River levels have risen following sustained rainfall. Residents in flood-prone communities should prepare to move to higher ground.', source: 'River Gauge Network', ds: 'Gampaha', location: '7.0917 N, 79.9997 E' },
-  { id: 'HZ-2024-003', type: 'Landslide Risk', district: 'Kandy', severity: 'Medium', status: 'Monitoring', updated: '10:18 AM', population: '8,250', confidence: 'Medium', description: 'Soil saturation is increasing on steep slopes. Local authorities have been notified to monitor vulnerable settlements.', source: 'National Building Research Organisation', ds: 'Kandy', location: '7.2906 N, 80.6337 E' },
-  { id: 'HZ-2024-004', type: 'Strong Winds', district: 'Galle', severity: 'Medium', status: 'Active', updated: '10:12 AM', population: '12,600', confidence: 'High', description: 'Strong coastal winds are expected this afternoon. Fisher communities and coastal residents should follow local advisories.', source: 'Department of Meteorology', ds: 'Galle', location: '6.0535 N, 80.2210 E' },
-  { id: 'HZ-2024-005', type: 'Coastal Surge', district: 'Matara', severity: 'High', status: 'Warning Issued', updated: '09:58 AM', population: '31,200', confidence: 'High', description: 'Coastal water levels may rise during high tide. Keep clear of exposed shorelines and follow instructions from local officials.', source: 'Coast Conservation Department', ds: 'Matara', location: '5.9549 N, 80.5550 E' },
-  { id: 'HZ-2024-006', type: 'Heavy Rainfall', district: 'Ratnapura', severity: 'Low', status: 'Monitoring', updated: '09:41 AM', population: '5,800', confidence: 'Medium', description: 'Showers are continuing across the district. Monitoring stations report stable river levels at this time.', source: 'Department of Meteorology', ds: 'Ratnapura', location: '6.6828 N, 80.3992 E' },
-  { id: 'HZ-2024-007', type: 'Landslide Risk', district: 'Nuwara Eliya', severity: 'Medium', status: 'Active', updated: '09:30 AM', population: '7,100', confidence: 'Medium', description: 'Ground movement sensors have detected elevated activity. Avoid unstable slopes and heed local authority guidance.', source: 'NBRO Sensor Network', ds: 'Nuwara Eliya', location: '6.9497 N, 80.7891 E' },
-  { id: 'HZ-2024-008', type: 'Flash Flood', district: 'Kalutara', severity: 'High', status: 'Pending', updated: '09:12 AM', population: '14,700', confidence: 'High', description: 'Rapid rainfall may cause flash flooding near streams and low crossings. Do not attempt to cross moving water.', source: 'Local Authority Report', ds: 'Kalutara', location: '6.5854 N, 79.9607 E' },
-  { id: 'HZ-2024-009', type: 'Strong Winds', district: 'Trincomalee', severity: 'Medium', status: 'Monitoring', updated: '08:54 AM', population: '9,400', confidence: 'Medium', description: 'Gusty conditions are forecast for the eastern coast. Small craft should remain in harbour until conditions improve.', source: 'Department of Meteorology', ds: 'Trincomalee', location: '8.5874 N, 81.2152 E' },
-  { id: 'HZ-2024-010', type: 'Heavy Rainfall', district: 'Batticaloa', severity: 'Low', status: 'Active', updated: '08:32 AM', population: '6,300', confidence: 'Medium', description: 'Localised rain showers are being tracked. No immediate threat to populated areas has been identified.', source: 'Department of Meteorology', ds: 'Batticaloa', location: '7.7310 N, 81.6747 E' },
-]
 
 const initialWarning = {
   level: 'High', urgency: 'Immediate', confidence: 'High', recommendation: 'Issue a public warning to flood-prone communities and coordinate evacuation readiness with local authorities.',
@@ -52,36 +40,41 @@ const initialWarning = {
   start: '2026-10-07T10:00', end: '2026-10-08T10:00', expiry: '2026-10-08T12:00', remarks: 'Hazard data reviewed and cross-checked with field reports.',
 }
 
-function loadSaved(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
+const getDefaultSchedule = () => {
+  const start = new Date(Date.now() + 5 * 60 * 1000)
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+  const toDateTimeLocal = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16)
+  return { start: toDateTimeLocal(start), end: toDateTimeLocal(end), expiry: toDateTimeLocal(end) }
 }
 
-function HazardWarningApp() {
-  const { search } = useLocation()
-  const requestedView = new URLSearchParams(search).get('view')
-  const requestedScreen = requestedView === 'warnings' ? 'warnings' : ['incidents', 'communications', 'reports', 'users', 'settings', 'help'].includes(requestedView) ? requestedView : 'dashboard'
-  const requestedLabel = { hazards: 'Hazard Monitoring', warnings: 'Warnings', incidents: 'Incident Reports', assessments: 'Assessments', communications: 'Communications', reports: 'Reports', users: 'Users & Roles', settings: 'System Settings', help: 'Help & Support' }[requestedView] || 'Dashboard'
-  const [hazards, setHazards] = useState(() => loadSaved('sdews-hazards', initialHazards))
-  const [warnings, setWarnings] = useState(() => loadSaved('sdews-warnings', []))
-  const [screen, setScreen] = useState(requestedScreen)
-  const [selectedHazardId, setSelectedHazardId] = useState('HZ-2024-002')
+const navItems = [
+  { label: 'Hazard Monitoring', icon: Activity, screen: 'dashboard' },
+  { label: 'Incident Reports', icon: ClipboardList, screen: 'incidents' },
+  { label: 'Warnings', icon: Siren, screen: 'warnings' },
+]
+
+function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [], onSelectReport, portalRole = 'duty' }) {
+  const { hazards, warnings, loading, error, refresh, updateHazard: saveHazard, ensureReportHazard, loadDraft, saveDraft: persistDraft, publish, retry, escalate, cancel } = useHazardWarningData()
+  const [screen, setScreen] = useState('dashboard')
+  const [selectedHazardId, setSelectedHazardId] = useState('')
   const [warning, setWarning] = useState(initialWarning)
   const [filter, setFilter] = useState({ search: '', type: 'All types', district: 'All districts', severity: 'All severities', status: 'All statuses' })
   const [modal, setModal] = useState('')
   const [toast, setToast] = useState('')
-  const [activeNav, setActiveNav] = useState(requestedLabel)
+  const [mobileMenu, setMobileMenu] = useState(false)
+  const [activeNav, setActiveNav] = useState('Hazard Monitoring')
   const [issueId, setIssueId] = useState('')
   const [page, setPage] = useState(1)
   const [checks, setChecks] = useState([true, true, true, true])
   const [reportCount, setReportCount] = useState('6')
   const [photoCount, setPhotoCount] = useState('14')
   const [evidenceRequested, setEvidenceRequested] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [workflowReportId, setWorkflowReportId] = useState('')
 
   const selectedHazard = hazards.find((hazard) => hazard.id === selectedHazardId) || hazards[0]
   const issuedWarning = warnings.find((item) => item.id === issueId) || warnings[0]
 
-  useEffect(() => { localStorage.setItem('sdews-hazards', JSON.stringify(hazards)) }, [hazards])
-  useEffect(() => { localStorage.setItem('sdews-warnings', JSON.stringify(warnings)) }, [warnings])
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(''), 3200); return () => clearTimeout(timer) }, [toast])
 
   const filteredHazards = useMemo(() => hazards.filter((hazard) => {
@@ -96,76 +89,203 @@ function HazardWarningApp() {
   const navigate = (destination, navLabel) => {
     setScreen(destination)
     if (navLabel) setActiveNav(navLabel)
+    setMobileMenu(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const beginWarning = (id = selectedHazardId) => { setSelectedHazardId(id); setEvidenceRequested(false); setWarning(() => ({ ...initialWarning, districts: [hazards.find((hazard) => hazard.id === id)?.district || 'Gampaha'], areas: [hazards.find((hazard) => hazard.id === id)?.district || 'Gampaha'] })); navigate('assessment', 'Assessments') }
-  const saveDraft = () => { localStorage.setItem('sdews-warning-draft', JSON.stringify({ hazardId: selectedHazardId, warning })); setToast('Draft saved on this device') }
-  const updateHazard = (key, value) => setHazards((current) => current.map((hazard) => hazard.id === selectedHazardId ? { ...hazard, [key]: value } : hazard))
+  const openReportWarning = async (report) => {
+    if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
+    try {
+      const hazard = await ensureReportHazard(report.id)
+      setWorkflowReportId(report.id)
+      if (onSelectReport) onSelectReport(report)
+      setSelectedHazardId(hazard.id)
+      setEvidenceRequested(false)
+      setWarning((current) => ({
+        ...current,
+        ...getDefaultSchedule(),
+        level: report.severity || hazard.severity || 'High',
+        title: `${report.disasterType || hazard.type} Warning — ${hazard.district}`,
+        message: report.description,
+        districts: [hazard.district],
+        areas: [report.areaLabel || hazard.district],
+        remarks: `Based on verified citizen report ${report.reportId || report.id}.`,
+      }))
+      navigate('assessment', 'Assessments')
+    } catch (requestError) {
+      setToast(getApiErrorMessage(requestError, 'Could not prepare this report for warning creation.'))
+    }
+  }
+  const beginWarning = async (id = selectedHazardId || hazards[0]?.id) => {
+    if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
+    const hazard = hazards.find((item) => item.id === id)
+    if (!hazard) { setToast('Load hazard records before starting a warning'); return }
+    setSelectedHazardId(id)
+    setEvidenceRequested(false)
+    let draft = null
+    try { draft = await loadDraft(id) }
+    catch (requestError) { setToast(getApiErrorMessage(requestError, 'Could not load the saved draft.')) }
+    setWarning(() => ({ ...initialWarning, ...getDefaultSchedule(), ...(draft?.warning || {}), districts: draft?.warning?.districts || [hazard.district], areas: draft?.warning?.areas || [hazard.district] }))
+    navigate('assessment', 'Assessments')
+  }
+  const saveDraft = async () => {
+    try {
+      await persistDraft(selectedHazardId, warning)
+      setToast('Warning draft saved to MongoDB.')
+      return true
+    } catch (requestError) {
+      setToast(getApiErrorMessage(requestError, 'Could not save the warning draft.'))
+      return false
+    }
+  }
+  const updateHazard = async (key, value) => {
+    try { await saveHazard(selectedHazardId, { [key]: value }) }
+    catch (requestError) { setToast(getApiErrorMessage(requestError, 'Could not update the hazard.')) }
+  }
   const updateWarning = (key, value) => setWarning((current) => ({ ...current, [key]: value }))
   const toggleInList = (key, value) => updateWarning(key, warning[key].includes(value) ? warning[key].filter((item) => item !== value) : [...warning[key], value])
-  const publishWarning = () => {
-    const newId = `WRN-2026-${String(warnings.length + 2017).padStart(4, '0')}`
-    const target = Math.max(2500, warning.areas.length * 12500)
-    const next = { id: newId, hazardId: selectedHazardId, level: warning.level, status: 'Published', title: warning.title, district: warning.districts.join(', '), areas: warning.areas, channels: warning.channels, target, delivered: Math.round(target * 0.943), pending: Math.round(target * 0.034), failed: Math.round(target * 0.023), date: new Date().toISOString(), warning: { ...warning } }
-    setWarnings((current) => [next, ...current])
-    updateHazard('status', 'Warning Issued')
-    setIssueId(newId)
-    setModal('')
-    navigate('delivery', 'Warnings')
+  const publishWarning = async () => {
+    if (publishing) return
+    setPublishing(true)
+    try {
+      const sourceReportId = workflowReportId || activeReport?.id
+      const created = await publish({ hazardId: selectedHazardId, reportId: sourceReportId, warning })
+      setIssueId(created.id)
+      setModal('')
+      if (sourceReportId && onWarningIssued) onWarningIssued(sourceReportId, created.id)
+      setWorkflowReportId('')
+      navigate('delivery', 'Warnings')
+      setToast('Warning recorded and queued. No external delivery provider is connected.')
+    } catch (requestError) {
+      setToast(getApiErrorMessage(requestError, 'Could not publish the warning.'))
+    } finally {
+      setPublishing(false)
+    }
   }
-  const retryChannel = (id, channel) => {
-    setWarnings((current) => current.map((item) => item.id === id ? { ...item, failed: Math.max(0, item.failed - Math.ceil(item.failed * .35)), delivered: Math.min(item.target, item.delivered + Math.ceil(item.failed * .35)), lastAction: `${channel} retry queued` } : item))
-    setToast(`${channel} retry queued`)
+  const retryChannel = async (id, channel) => {
+    try { await retry(id, channel); setToast(`${channel} retry recorded in the queue.`) }
+    catch (requestError) { setToast(getApiErrorMessage(requestError, 'Could not queue this retry.')) }
   }
-  const dispatchEscalation = () => { setWarnings((current) => current.map((item) => item.id === issueId ? { ...item, escalated: true, lastAction: 'Escalated to regional authority' } : item)); setToast('Escalation sent to the regional authority'); setModal('') }
-  const cancelIssuedWarning = () => { setWarnings((current) => current.map((item) => item.id === issueId ? { ...item, status: 'Cancelled', lastAction: 'Warning cancelled by officer' } : item)); setToast('Warning cancelled'); setModal('') }
+  const dispatchEscalation = async () => {
+    try { await escalate(issueId); setToast('Warning marked for regional review.'); setModal('') }
+    catch (requestError) { setToast(getApiErrorMessage(requestError, 'Could not escalate the warning.')) }
+  }
+  const cancelIssuedWarning = async () => {
+    try { await cancel(issueId); setToast('Warning cancelled.'); setModal('') }
+    catch (requestError) { setToast(getApiErrorMessage(requestError, 'Could not cancel the warning.')) }
+  }
   const toggleCheck = (index) => setChecks((current) => current.map((item, i) => i === index ? !item : item))
 
-  const screenProps = { Header, Badge, Button, Field, MapPanel, hazards, setHazards, selectedHazard, selectedHazardId, setSelectedHazardId, warning, setWarning, warnings, setWarnings, issuedWarning, filter, setFilter, filteredHazards, navigate, beginWarning, updateHazard, updateWarning, toggleInList, saveDraft, retryChannel, setModal, setToast, setPage, page, reportCount, setReportCount, photoCount, setPhotoCount, setIssueId, evidenceRequested, setEvidenceRequested, checks, toggleCheck, publishWarning, cancelIssuedWarning };
+  const screenProps = { Header, Badge, Button, Field, MapPanel, hazards, selectedHazard, selectedHazardId, setSelectedHazardId, warning, setWarning, warnings, issuedWarning, filter, setFilter, filteredHazards, navigate, beginWarning, updateHazard, updateWarning, toggleInList, saveDraft, retryChannel, refreshData: refresh, setModal, setToast, setPage, page, reportCount, setReportCount, photoCount, setPhotoCount, setIssueId, evidenceRequested, setEvidenceRequested, checks, toggleCheck, publishWarning, cancelIssuedWarning };
   const pageByScreen = { dashboard: DashboardScreen, details: HazardDetailsScreen, assessment: EventAssessmentScreen, level: WarningLevelScreen, area: AffectedAreaScreen, review: WarningReviewScreen, delivery: DeliveryStatusScreen, warnings: WarningRegisterScreen };
-  const currentScreen = ['incidents', 'resources', 'communications', 'reports', 'users', 'settings', 'help'].includes(screen) ? <PlaceholderPageScreen kind={screen} {...screenProps} /> : React.createElement(pageByScreen[screen] || DashboardScreen, screenProps);
+  const warningsWithHazardNames = warnings.map((item) => {
+    const hazard = hazards.find((candidate) => candidate.id === item.hazardId)
+    return {
+      ...item,
+      hazardId: hazard ? `${hazard.type} — ${hazard.district}` : item.warning?.title || item.title || 'Hazard report',
+    }
+  })
+  const currentScreen = screen === 'incidents'
+    ? <DutyIncidentReportsPanel reports={reports} onIssueWarning={(report) => {
+      if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue or review warning dispatch.'); return }
+      if (report.status === 'WARNING_ISSUED') navigate('warnings', 'Warnings')
+      else openReportWarning(report)
+    }} />
+    : screen === 'warnings'
+      ? <WarningRegisterScreen {...screenProps} warnings={warningsWithHazardNames} />
+      : React.createElement(pageByScreen[screen] || DashboardScreen, screenProps);
 
-  return <><SdewsLayout role="Assessment Officer" activeNavigation={activeNav} warningCount={warnings.length} onNotification={() => setToast('You are up to date with all system notifications')} onProfile={() => setToast('Signed in as Assessment Officer')}>{currentScreen}</SdewsLayout>
-    {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal('') }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={19}/></button>{modal === 'hazard-actions' ? <><span className="modal-icon amber"><MoreHorizontal/></span><h2 id="modal-title">Hazard actions</h2><p>Choose an action for {selectedHazard.id} in {selectedHazard.district}.</p><div className="modal-actions vertical"><Button variant="primary" onClick={() => { setModal(''); navigate('details', 'Hazard Monitoring') }}>Review hazard details</Button><Button variant="teal-button" onClick={() => { setModal(''); beginWarning(selectedHazard.id) }}>Create warning draft</Button><Button onClick={() => setModal('')}>Close</Button></div></> : modal === 'publish' ? <><span className="modal-icon warning-icon"><AlertTriangle/></span><div className="modal-eyebrow">FINAL CONFIRMATION</div><h2 id="modal-title">Confirm publication</h2><p>You are about to publish this <b>{warning.level.toLowerCase()} warning</b> to <b>{warning.areas.length} affected areas</b> through {warning.channels.join(', ')}. Are you ready to send this public safety message?</p><div className="modal-summary"><span>Hazard <b>{selectedHazard.id}</b></span><span>Target audience <b>{(warning.areas.length * 12480).toLocaleString()} people</b></span></div><div className="modal-actions"><Button onClick={() => setModal('')}>No, go back</Button><Button variant="danger-button" icon={Send} onClick={publishWarning}>Yes, publish warning</Button></div></> : modal === 'escalate' ? <><span className="modal-icon blue"><ArrowRight/></span><div className="modal-eyebrow">ESCALATION</div><h2 id="modal-title">Escalate this warning?</h2><p>The regional authority will be notified and the warning will be flagged for urgent review.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Go back</Button><Button variant="primary" onClick={dispatchEscalation}>Confirm escalation</Button></div></> : modal === 'cancel-warning' ? <><span className="modal-icon danger"><X/></span><div className="modal-eyebrow">STOP DELIVERY</div><h2 id="modal-title">Cancel this warning?</h2><p>Further delivery attempts will stop. The issued warning will be marked as cancelled in the audit history.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Keep warning active</Button><Button variant="danger-button" onClick={cancelIssuedWarning}>Confirm cancellation</Button></div></> : <><span className="modal-icon amber"><AlertTriangle/></span><h2 id="modal-title">Cancel this process?</h2><p>Your current warning details are saved as a draft on this device.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Continue editing</Button><Button variant="danger-button" onClick={() => { setModal(''); navigate('dashboard', 'Dashboard'); setToast('Warning process saved as a draft') }}>Save and exit</Button></div></>}</section></div>}
+  return <div className="app-shell" data-portal-role={portalRole}><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">{portalRole === 'district' ? 'DISTRICT OFFICER' : 'DUTY OFFICER'}</div><nav>{navItems.filter(({ label }) => portalRole === 'duty' || label !== 'Warnings').map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>{loading ? 'Connecting to API' : error ? 'API unavailable' : 'API connected'}</span></div><button className="user-card" onClick={onLogout}><span className="avatar">{portalRole === 'district' ? 'DS' : 'DO'}</span><span><b>{portalRole === 'district' ? 'District Officer' : 'Duty Officer'}</b><small>{portalRole === 'district' ? 'District Operations' : 'DMC · National Operations'}</small></span><span className="user-signout">Sign out</span></button></div></aside>
+    {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
+    <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{activeNav}</b></div><div className="topbar-actions"><span className="topbar-date">{new Date().toLocaleDateString('en-LK', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</span><button className="notification-button" aria-label="Notifications" onClick={() => setToast('You are up to date with all system notifications')}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">AO</span><span><b>Assessment Officer</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className="content-area">{error && <div className="api-status-banner" role="alert"><span>{error}</span><Button variant="secondary-blue" onClick={() => void refresh()}>Retry connection</Button></div>}{!loading && !error && hazards.length === 0 && <div className="api-status-banner"><span>No hazard records found. Start the backend, then run <code>npm run seed:hazards</code> from the backend folder.</span><Button variant="secondary-blue" onClick={() => void refresh()}>Refresh</Button></div>}{currentScreen}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Hazard and warning records stored in MongoDB <i className="online-dot"/></span></footer></div></main>
+    {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal('') }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={19}/></button>{modal === 'hazard-actions' ? <><span className="modal-icon amber"><MoreHorizontal/></span><h2 id="modal-title">Hazard actions</h2><p>Choose an action for {selectedHazard.id} in {selectedHazard.district}.</p><div className="modal-actions vertical"><Button variant="primary" onClick={() => { setModal(''); navigate('details', 'Hazard Monitoring') }}>Review hazard details</Button><Button variant="teal-button" onClick={() => { setModal(''); beginWarning(selectedHazard.id) }}>Create warning draft</Button><Button onClick={() => setModal('')}>Close</Button></div></> : modal === 'publish' ? <><span className="modal-icon warning-icon"><AlertTriangle/></span><div className="modal-eyebrow">FINAL CONFIRMATION</div><h2 id="modal-title">Confirm publication</h2><p>You are about to publish this <b>{warning.level.toLowerCase()} warning</b> to <b>{warning.areas.length} affected areas</b> through {warning.channels.join(', ')}. This records the warning and adds it to the delivery queue. No external channel provider will send it from this build.</p><div className="modal-summary"><span>Hazard <b>{selectedHazard.id}</b></span><span>Target audience <b>{(warning.areas.length * 12480).toLocaleString()} people</b></span></div><div className="modal-actions"><Button onClick={() => setModal('')}>No, go back</Button><Button variant="danger-button" icon={Send} disabled={publishing} onClick={publishWarning}>{publishing ? 'Recording?' : 'Record warning'}</Button></div></> : modal === 'escalate' ? <><span className="modal-icon blue"><ArrowRight/></span><div className="modal-eyebrow">ESCALATION</div><h2 id="modal-title">Escalate this warning?</h2><p>This marks the warning for regional review. No external authority notification is configured.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Go back</Button><Button variant="primary" onClick={dispatchEscalation}>Confirm escalation</Button></div></> : modal === 'cancel-warning' ? <><span className="modal-icon danger"><X/></span><div className="modal-eyebrow">STOP DELIVERY</div><h2 id="modal-title">Cancel this warning?</h2><p>Further delivery attempts will stop. The issued warning will be marked as cancelled in the audit history.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Keep warning active</Button><Button variant="danger-button" onClick={cancelIssuedWarning}>Confirm cancellation</Button></div></> : <><span className="modal-icon amber"><AlertTriangle/></span><h2 id="modal-title">Cancel this process?</h2><p>Your latest saved draft is stored in MongoDB for this hazard.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Continue editing</Button><Button variant="danger-button" onClick={async () => { if (await saveDraft()) { setModal(''); navigate('dashboard', 'Dashboard') } }}>Save and exit</Button></div></>}</section></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={18}/>{toast}<button aria-label="Dismiss notification" onClick={() => setToast('')}><X size={15}/></button></div>}
-  </>
-}
-
-function HazardWarningRoute() {
-  const { search } = useLocation()
-  return <HazardWarningApp key={search} />
+  </div>
 }
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HazardWarningRoute />} />
-        <Route path="/resource-coordination" element={<ResourceCoordinationDashboard />} />
-        <Route path="/resource-coordination/distributions/new/:shelterId" element={<CreateDistributionPage />} />
-        <Route path="/resource-coordination/distributions/review" element={<ReviewDistributionPage />} />
-        <Route path="/resource-coordination/distributions/processing" element={<ProcessingDistributionPage />} />
-        <Route path="/resource-coordination/distributions/success" element={<DistributionSuccessPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources" element={<ResourceCoordinationDashboard />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/new/:shelterId" element={<CreateDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/review" element={<ReviewDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/processing" element={<ProcessingDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/success" element={<DistributionSuccessPage />} />
-        <Route path="/response-operations/incidents/:incidentId/monitoring" element={<ResponseMonitoringPage />} />
-        <Route path="/response-operations/incidents/:incidentId/shelters" element={<ShelterCoordinationPage />} />
-        <Route path="/response-operations/incidents/:incidentId/assignment" element={<ResponseAssignmentPage />} />
-        <Route path="/response-operations/incidents/:incidentId/teams" element={<TeamSelectionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/requests" element={<OperationalRequestsPage />} />
-        <Route path="/response-operations/incidents/:incidentId" element={<IncidentPlanningPage />} />
-        <Route path="/response-operations" element={<ResponseOperationsDashboard />} />
-        <Route path="/resource-operations" element={<DistrictResourceDashboard />} />
-        <Route path="/warnings/:warningId/review" element={<WarningReviewPage />} />
-        <Route path="/warnings/:warningId/configure" element={<ConfigureWarningPage />} />
-        <Route path="/warnings/:warningId/status" element={<WarningStatusPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  )
+  const [authSession, setAuthSession] = useState(() => readAuthSession())
+  const roleMap = { dmc_officer: 'dmc', duty_officer: 'duty', district_officer: 'district', district_resource_officer: 'resource', response_officer: 'response' }
+  const role = roleMap[authSession?.user?.role] || ''
+  const [reports, setReports] = useState([])
+  const [activeReport, setActiveReport] = useState(null)
+
+  useEffect(() => {
+    if (!['dmc', 'duty'].includes(role)) return undefined
+    let active = true
+    getGroundReports().then((data) => { if (active) setReports(data) }).catch(() => { if (active) setReports([]) })
+    return () => { active = false }
+  }, [role])
+
+  const login = (session) => {
+    saveAuthSession(session)
+    setAuthSession(session)
+  }
+  const logout = () => {
+    clearAuthSession()
+    setAuthSession(null)
+    setActiveReport(null)
+  }
+  const updateReport = async (id, changes) => {
+    const updated = await reviewGroundReport(id, changes)
+    setReports((current) => current.map((report) => report.id === id ? updated : report))
+    return updated
+  }
+  const issueWarningFor = (report) => setActiveReport(report)
+  const finishWarning = (reportId, warningId) => {
+    setReports((current) => current.map((report) => report.id === reportId ? {
+      ...report,
+      status: 'WARNING_ISSUED',
+      warningId,
+      warningIssuedAt: new Date().toISOString(),
+    } : report))
+    setActiveReport(null)
+  }
+  const loginPage = <AuthPage mode="login" onAuthenticated={login}/>
+  const registerPage = <AuthPage mode="register" onAuthenticated={login}/>
+  const dmcPage = role === 'dmc'
+    ? <DmcReportReviewPage reports={reports} onUpdateReport={updateReport} onLogout={logout}/>
+    : <Navigate to={role ? '/duty' : '/login'} replace/>
+  const dutyPage = role === 'duty'
+    ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="duty"/>
+    : <Navigate to={role ? '/dmc' : '/login'} replace/>
+  const districtPage = role === 'district'
+    ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="district"/>
+    : <Navigate to={role ? '/duty' : '/login'} replace/>
+  const responseEntry = role === 'response'
+    ? <ResponseOperationsDashboard/>
+    : <Navigate to={role ? '/' : '/login'} replace/>
+  const resourceIncidentPage = role === 'resource' ? <ResourceCoordinationDashboard/> : <Navigate to="/" replace/>
+  const responseOnly = (page) => role === 'response' ? page : <Navigate to="/" replace/>
+  const resourceOnly = (page) => role === 'resource' ? page : <Navigate to="/" replace/>
+
+  return <BrowserRouter><Routes>
+    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : role === 'resource' ? '/resource-operations' : role === 'response' ? '/response-operations' : '/login'} replace/>}/>
+    <Route path="/login" element={role ? <Navigate to="/" replace/> : loginPage}/>
+    <Route path="/register" element={role ? <Navigate to="/" replace/> : registerPage}/>
+    <Route path="/dmc" element={dmcPage}/>
+    <Route path="/duty" element={dutyPage}/>
+    <Route path="/duty/hazard-monitoring" element={dutyPage}/>
+    <Route path="/district" element={districtPage}/>
+    <Route path="/response-operations" element={role === 'resource' ? <DistrictResourceDashboard/> : responseEntry}/>
+    <Route path="/resource-operations" element={resourceOnly(<DistrictResourceDashboard/>)}/>
+    <Route path="/response-operations/incidents/:incidentId" element={responseOnly(<IncidentPlanningPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/teams" element={responseOnly(<TeamSelectionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/assignment" element={responseOnly(<ResponseAssignmentPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/shelters" element={responseOnly(<ShelterCoordinationPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/requests" element={responseOnly(<OperationalRequestsPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/monitoring" element={responseOnly(<ResponseMonitoringPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources" element={resourceIncidentPage}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/new/:shelterId" element={resourceOnly(<CreateDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/review" element={resourceOnly(<ReviewDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/processing" element={resourceOnly(<ProcessingDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/success" element={resourceOnly(<DistributionSuccessPage/>)}/>
+    <Route path="/resource-coordination" element={resourceOnly(<ResourceCoordinationDashboard/>)}/>
+    <Route path="/resource-coordination/distributions/new/:shelterId" element={resourceOnly(<CreateDistributionPage/>)}/>
+    <Route path="/resource-coordination/distributions/review" element={resourceOnly(<ReviewDistributionPage/>)}/>
+    <Route path="/resource-coordination/distributions/processing" element={resourceOnly(<ProcessingDistributionPage/>)}/>
+    <Route path="/resource-coordination/distributions/success" element={resourceOnly(<DistributionSuccessPage/>)}/>
+    <Route path="*" element={<Navigate to="/" replace/>}/>
+  </Routes></BrowserRouter>
 }
 
 export default App

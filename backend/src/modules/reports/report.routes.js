@@ -1,7 +1,14 @@
 const router = require("express").Router();
-const { submitGroundReport } = require("./report.controller");
-const requireAuth = require('../../middleware/auth');
+const { submitGroundReport, listGroundReports, listMyGroundReports, reviewGroundReport, listPublishedAlerts, ensureReportHazard } = require("./report.controller");
+const requireCitizenAuth = require('../../middleware/auth');
+const requireStaffAuth = require('../../middleware/requireAuth');
+const requireRole = require('../../middleware/requireRole');
 
-router.post("/", requireAuth, submitGroundReport);
+router.post("/", requireCitizenAuth, submitGroundReport);
+router.get("/alerts", requireCitizenAuth, listPublishedAlerts);
+router.get("/mine", requireCitizenAuth, listMyGroundReports);
+router.get("/", requireStaffAuth, requireRole("dmc_officer", "duty_officer"), listGroundReports);
+router.patch("/:id/review", requireStaffAuth, requireRole("dmc_officer"), reviewGroundReport);
+router.post("/:id/hazard", requireStaffAuth, requireRole("duty_officer"), ensureReportHazard);
 
 module.exports = router;

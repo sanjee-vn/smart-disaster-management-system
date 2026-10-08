@@ -11,6 +11,9 @@ const STATUSES = {
   PENDING: { label: 'Pending verification', color: '#8E651B', background: '#FFF3DB' },
   VERIFIED: { label: 'Verified', color: '#1C7855', background: '#E4F4EB' },
   REJECTED: { label: 'Rejected', color: '#B04444', background: '#FCEAEA' },
+  CLARIFICATION_REQUESTED: { label: 'More information requested', color: '#8E651B', background: '#FFF3DB' },
+  FORWARDED_TO_DUTY_OFFICER: { label: 'Verified and forwarded', color: '#266DA4', background: '#E7F1FB' },
+  WARNING_ISSUED: { label: 'Warning issued', color: '#B04444', background: '#FCEAEA' },
   RESPONSE_INITIATED: { label: 'Response initiated', color: '#266DA4', background: '#E7F1FB' },
   RESOLVED: { label: 'Resolved', color: '#1C7855', background: '#E4F4EB' },
 };
@@ -41,7 +44,7 @@ function mergeReports(current, incoming) {
 function reportTimeline(report) {
   const items = [{ title: 'Report submitted', detail: formatDate(report.createdAt), complete: true }];
   if (report.status === 'REJECTED') return [...items, { title: 'Report rejected', detail: formatDate(report.updatedAt), complete: true }];
-  const stage = { PENDING: 0, VERIFIED: 1, RESPONSE_INITIATED: 2, RESOLVED: 3 }[report.status] ?? 0;
+  const stage = { PENDING: 0, CLARIFICATION_REQUESTED: 0, VERIFIED: 1, FORWARDED_TO_DUTY_OFFICER: 1, WARNING_ISSUED: 2, RESPONSE_INITIATED: 2, RESOLVED: 3 }[report.status] ?? 0;
   return [...items, ...['Verification', 'Response initiated', 'Resolved'].map((title, index) => ({
     title: title === 'Verification' ? stage >= 1 ? 'Report verified' : 'Verification pending' : title,
     complete: stage > index,

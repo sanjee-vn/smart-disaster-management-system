@@ -1,8 +1,12 @@
 const express = require("express");
 const controller = require("../controllers/resourceCoordinationController");
 const distributionController = require("../controllers/distributionController");
+const requireAuth = require("../middleware/requireAuth");
+const requireRole = require("../middleware/requireRole");
 
 const router = express.Router();
+router.use(requireAuth);
+router.use(requireRole("district_resource_officer", "response_officer", "duty_officer"));
 router.get("/shelters", controller.listShelters);
 router.get("/distributions", distributionController.listDistributions);
 router.get("/inventory", controller.listInventory);
