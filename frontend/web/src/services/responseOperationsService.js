@@ -44,3 +44,23 @@ export const resolveResponse = async (incidentId) => {
   const response = await api.post(`/response-operations/incidents/${incidentId}/resolve`)
   return response.data.data
 }
+
+export const getOperationalRequests = async (params = {}) => {
+  const response = await api.get('/response-operations/operational-requests', { params })
+  return response.data.data
+}
+
+export const createOperationalRequest = async (payload) => {
+  const response = await api.post('/response-operations/operational-requests', payload)
+  return response.data.data
+}
+
+export const reviewOperationalRequest = async (requestId, payload) => {
+  const response = await api.patch(`/response-operations/operational-requests/${requestId}/review`, payload)
+  return response.data.data
+}
+
+export const dispatchOperationalRequest = async (requestId) => {
+  const response = await api.post(`/response-operations/operational-requests/${requestId}/dispatch`)
+  return response.data.data
+}

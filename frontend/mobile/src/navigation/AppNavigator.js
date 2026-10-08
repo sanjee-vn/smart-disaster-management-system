@@ -16,6 +16,7 @@ import LogoScreen from '../screens/auth/LogoScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import StaffUpdatesScreen from '../screens/StaffUpdatesScreen';
 
 const Tabs = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -34,17 +35,27 @@ function MainTabs() {
     <Tabs.Screen name="Profile" component={ProfileScreen} />
   </Tabs.Navigator>;
 }
+function StaffTabs() {
+  return <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: c.primary, tabBarInactiveTintColor: '#738991', tabBarIcon: ({ focused, color }) => <Icon name={`${({ Home: 'home', Map: 'map', Activity: 'pulse', Profile: 'person' })[route.name]}${focused ? '' : '-outline'}`} size={23} color={color}/> })}>
+    <Tabs.Screen name="Home">{() => <StaffUpdatesScreen />}</Tabs.Screen>
+    <Tabs.Screen name="Map" component={MapScreen}/>
+    <Tabs.Screen name="Activity">{() => <StaffUpdatesScreen activityOnly />}</Tabs.Screen>
+    <Tabs.Screen name="Profile" component={ProfileScreen}/>
+  </Tabs.Navigator>;
+}
 export default function AppNavigator() {
   const { user, onboarded, restoring, restoreError } = useAuth();
   if (restoring || restoreError) return <LogoScreen />;
   return <ReportsProvider key={user?.id || 'signed-out'} userId={user?.id}><NavigationContainer theme={theme}><Stack.Navigator screenOptions={{ headerTintColor: c.text, headerShadowVisible: false, headerTitleStyle: { fontSize: 17 }, contentStyle: { backgroundColor: c.background }, statusBarStyle: 'dark' }}>
     {user ? <Stack.Group navigationKey={user.id}>
-    <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+    <Stack.Screen name="MainTabs" component={user.role === 'STAFF_OFFICER' ? StaffTabs : MainTabs} options={{ headerShown: false }} />
+    {user.role !== 'STAFF_OFFICER' && <>
     <Stack.Screen name="ReportIncident" component={GroundReportScreen} options={{ title: 'Report an Incident' }} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} options={{ title: 'Report Details' }} />
     <Stack.Screen name="Alerts" component={AlertsScreen} options={{ title: 'Alerts & Updates' }} />
     <Stack.Screen name="Contacts" component={ContactsScreen} options={{ title: 'Emergency Contacts' }} />
     <Stack.Screen name="Guidelines" component={GuidelinesScreen} options={{ title: 'Safety Guidelines' }} />
+    </>}
     <Stack.Screen name="Preferences" component={PreferencesScreen} options={({ route }) => ({ title: route.params?.title || 'Preferences' })} />
     </Stack.Group> : !onboarded ? <Stack.Group navigationKey="onboarding" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="OnboardingOne" component={OnboardingScreen} />

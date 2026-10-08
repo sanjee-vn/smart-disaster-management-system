@@ -7,14 +7,14 @@ const ids = {
   incident: new mongoose.Types.ObjectId(), assignment: new mongoose.Types.ObjectId(),
   team1: new mongoose.Types.ObjectId(), team2: new mongoose.Types.ObjectId(), unrelated: new mongoose.Types.ObjectId(),
 };
-const methods = ["runInTransaction", "findIncidentForDispatch", "findCurrentAssignmentByIncident", "findAnyAssignmentByIncident", "countOutstandingDistributions", "findTeamsForResolution", "releaseDeployedTeams", "completeAssignment", "resolveIncident"];
+const methods = ["runInTransaction", "findIncidentForDispatch", "findCurrentAssignmentByIncident", "findAnyAssignmentByIncident", "countOutstandingDistributions", "countOutstandingOperationalRequests", "findTeamsForResolution", "releaseDeployedTeams", "completeAssignment", "resolveIncident"];
 const originals = Object.fromEntries(methods.map((name) => [name, repository[name]]));
 
 let state;
 let failIncidentUpdate;
 const snapshot = () => ({
   incident: state.incident && { ...state.incident }, assignment: state.assignment && { ...state.assignment, teamIds: [...state.assignment.teamIds] },
-  teams: state.teams.map((team) => ({ ...team })), outstanding: state.outstanding,
+  teams: state.teams.map((team) => ({ ...team })), outstanding: state.outstanding, outstandingRequests: state.outstandingRequests,
 });
 const reset = () => {
   failIncidentUpdate = false;
@@ -25,7 +25,7 @@ const reset = () => {
       { _id: ids.team1, status: "DEPLOYED" }, { _id: ids.team2, status: "DEPLOYED" },
       { _id: ids.unrelated, status: "DEPLOYED" },
     ],
-    outstanding: 0,
+    outstanding: 0, outstandingRequests: 0,
   };
   repository.runInTransaction = async (operation) => {
     const before = snapshot();
@@ -35,6 +35,7 @@ const reset = () => {
   repository.findCurrentAssignmentByIncident = async () => state.assignment;
   repository.findAnyAssignmentByIncident = async () => state.assignment;
   repository.countOutstandingDistributions = async () => state.outstanding;
+  repository.countOutstandingOperationalRequests = async () => state.outstandingRequests;
   repository.findTeamsForResolution = async (teamIds) => state.teams.filter((team) => teamIds.map(String).includes(team._id.toString()));
   repository.releaseDeployedTeams = async (teamIds) => {
     let modifiedCount = 0;
@@ -79,6 +80,8 @@ const run = async () => {
   reset(); state.outstanding = 1;
   await expectCode(() => service.resolveResponse("INC-TEST-01"), "OUTSTANDING_DISTRIBUTIONS");
   assert.equal(state.incident.status, "RESPONSE_IN_PROGRESS");
+  reset(); state.outstandingRequests = 1;
+  await expectCode(() => service.resolveResponse("INC-TEST-01"), "OUTSTANDING_OPERATIONAL_REQUESTS");
 
   reset(); failIncidentUpdate = true;
   await expectCode(() => service.resolveResponse("INC-TEST-01"), "RESPONSE_RESOLUTION_FAILED");

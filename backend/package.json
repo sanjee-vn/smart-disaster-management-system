@@ -11,7 +11,7 @@
     "seed:shelters": "node src/seeds/seedShelters.js",
     "seed:component03": "node src/seeds/seedComponent03.js",
     "seed:response-operations": "node src/seeds/seedResponseOperations.js",
-    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/reports.test.js",
+    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/reports.test.js",
     "test:coverage": "node --test --experimental-test-coverage"
   },
   "keywords": [],

@@ -9,9 +9,6 @@ const navigation = [
   { label: 'Warnings', icon: Siren, to: '/?view=warnings' },
   { label: 'Incident Reports', icon: ClipboardList, to: '/?view=incidents' },
   { label: 'Assessments', icon: FileText, to: '/?view=assessments' },
-  { label: 'Response Planning', icon: ClipboardList, to: '/response-operations' },
-  { label: 'Resource Allocation', icon: Users, to: '/response-operations?area=resources' },
-  { label: 'Response Monitoring', icon: Activity, to: '/response-operations?area=monitoring' },
   { label: 'Communications', icon: MessageSquare, to: '/?view=communications' },
   { label: 'Reports', icon: Layers3, to: '/?view=reports' },
   { label: 'Users & Roles', icon: Users, to: '/?view=users' },
@@ -51,14 +48,6 @@ export default function SdewsLayout({ children, role = 'Assessment Officer', bre
   const [mobileMenu, setMobileMenu] = useState(false)
   const active = activeNavigation || activeLabel(pathname, search)
   const initials = roleInitials(role)
-  const incidentMatch = pathname.match(/^\/response-operations\/incidents\/([^/]+)/)
-  const currentIncidentId = incidentMatch?.[1]
-  const contextualNavigation = navigation.map((item) => {
-    if (!currentIncidentId) return item
-    if (item.label === 'Resource Allocation') return { ...item, to: `/response-operations/incidents/${currentIncidentId}/resources` }
-    if (item.label === 'Response Monitoring') return { ...item, to: `/response-operations/incidents/${currentIncidentId}/monitoring` }
-    return item
-  })
 
   const goTo = (to) => {
     setMobileMenu(false)
@@ -67,7 +56,7 @@ export default function SdewsLayout({ children, role = 'Assessment Officer', bre
   }
 
   return <div className="app-shell">
-    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{contextualNavigation.map(({ label, icon: Icon, to }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div><button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
+    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{navigation.map(({ label, icon: Icon, to }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div><button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
     <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{breadcrumb || active}</b></div><div className="topbar-actions"><span className="topbar-date">Tuesday, 07 October 2026</span><button className="notification-button" aria-label="Notifications" onClick={onNotification}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">{initials}</span><span><b>{role}</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className={`content-area ${contentClassName}`.trim()}>{children}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Data stored locally for this prototype <i className="online-dot"/></span></footer></div></main>
   </div>

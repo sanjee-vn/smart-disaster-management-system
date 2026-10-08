@@ -4,15 +4,17 @@ import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import MonitoringSummaryCards from '../components/MonitoringSummaryCards'
 import StatusBadge from '../components/StatusBadge'
+import ResourceRequirementContext from '../components/ResourceRequirementContext'
 import useResponseMonitoringData from '../hooks/useResponseMonitoringData'
 import { resolveResponse } from '../services/responseOperationsService'
+import { normalizeRequirements } from '../utils/responseRequirements'
 
 const displayTime = (value) => value ? new Date(value).toLocaleString() : 'Not available'
 
 export default function ResponseMonitoringPage() {
   const { incidentId } = useParams()
   const navigate = useNavigate()
-  const { incident, assignment, shelters, distributions, loading, error, lastRefreshed, refresh } = useResponseMonitoringData(incidentId)
+  const { incident, assignment, requests, shelters, distributions, loading, error, lastRefreshed, refresh } = useResponseMonitoringData(incidentId)
   const [confirming, setConfirming] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [resolutionError, setResolutionError] = useState(null)
@@ -47,11 +49,14 @@ export default function ResponseMonitoringPage() {
 
   const resolved = incident.status === 'RESOLVED'
   const resolvable = assignment && ['DISPATCHED', 'IN_PROGRESS'].includes(assignment.status) && !resolved
+  const requirements = normalizeRequirements(assignment?.requiredCapabilities)
   return <DashboardLayout activeSection="incidents" breadcrumb="Response Operations / Live Monitoring" role="Response Officer"><div className="content response-monitoring-page">
     <button className="back-link" onClick={() => navigate('/response-operations')}><ArrowLeft size={15} /> Response Operations</button>
-    <header className="monitoring-header"><div><p className="warning-eyebrow">Live operational overview</p><h1>Response Monitoring &amp; Resolution</h1><p>{incident.affectedArea || incident.district}</p><div className="warning-header-badges"><StatusBadge value={incident.severity} kind="severity" /><StatusBadge value={incident.status} /></div></div><div className="monitoring-context"><div><span>Incident ID</span><strong>{incident.incidentId}</strong></div><div><span>Hazard</span><strong>{incident.hazardType}</strong></div><div><span>District</span><strong>{incident.district}</strong></div><div><span>Response ID</span><strong>{assignment?.responseId || 'No assignment'}</strong></div><div><span>Response status</span><strong>{assignment?.status || 'Not assigned'}</strong></div><div><span>Last refreshed</span><strong>{displayTime(lastRefreshed)}</strong></div></div></header>
+    <header className="monitoring-header"><div><p className="warning-eyebrow">Live operational overview</p><h1>Response Monitoring &amp; Resolution</h1><p>{incident.affectedArea || incident.district}</p><div className="warning-header-badges"><StatusBadge value={incident.severity} kind="severity" /><StatusBadge value={incident.status} /></div></div><div className="monitoring-context"><div><span>Incident ID</span><strong>{incident.incidentId}</strong></div><div><span>Warning ID</span><strong>{incident.warning?.warningId || 'Not linked'}</strong></div><div><span>Hazard</span><strong>{incident.hazardType}</strong></div><div><span>District</span><strong>{incident.district}</strong></div><div><span>Response ID</span><strong>{assignment?.responseId || 'No assignment'}</strong></div><div><span>Response status</span><strong>{assignment?.status || 'Not assigned'}</strong></div><div><span>Last refreshed</span><strong>{displayTime(lastRefreshed)}</strong></div></div></header>
     <div className="monitoring-toolbar"><span>Current data from incident operations</span><button className="btn btn-secondary" disabled={loading} onClick={refresh}><RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh</button></div>
     <MonitoringSummaryCards metrics={metrics} />
+    <ResourceRequirementContext requirements={requirements} distributions={distributions} compact />
+    <section className="monitoring-panel"><div className="monitoring-panel-heading"><Users size={18} /><div><h2>Operational Requests</h2><p>Request review and dispatch progress for this incident</p></div></div>{requests.length === 0 ? <div className="monitoring-empty">No operational requests have been recorded.</div> : <div className="monitoring-table-wrap"><table className="monitoring-table"><thead><tr><th>Request</th><th>Capability</th><th>Personnel</th><th>Location</th><th>Required</th><th>Team</th><th>Status</th></tr></thead><tbody>{requests.map((request) => <tr key={request.id}><td><strong>{request.requestId}</strong></td><td>{request.capability.replaceAll('_', ' ')}</td><td>{request.requestedPersonnelCount}</td><td>{request.requestedLocation}</td><td>{displayTime(request.requiredAt)}</td><td>{request.approvedTeam?.name || request.rejectionReason || 'Not assigned'}</td><td><StatusBadge value={request.status}/></td></tr>)}</tbody></table></div>}</section>
 
     <section className="monitoring-panel"><div className="monitoring-panel-heading"><Users size={18} /><div><h2>Assigned Response Teams</h2><p>Only teams connected to this response assignment</p></div></div>{!assignment ? <div className="monitoring-empty">No response assignment is available.</div> : assignment.teams.length === 0 ? <div className="monitoring-empty">No teams are assigned.</div> : <div className="monitoring-table-wrap"><table className="monitoring-table"><thead><tr><th>Team</th><th>Agency</th><th>Type</th><th>Location</th><th>Capacity</th><th>Status</th></tr></thead><tbody>{assignment.teams.map((team) => <tr key={team.id}><td><strong>{team.name}</strong></td><td>{team.agency?.name || 'Not available'}</td><td>{team.type}</td><td>{team.currentLocation || 'Not available'}</td><td>{team.capacity ?? 'Not available'}</td><td><StatusBadge value={team.status} /></td></tr>)}</tbody></table></div>}</section>
 

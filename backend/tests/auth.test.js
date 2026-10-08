@@ -33,6 +33,7 @@ test('user model requires fields and protects password hashes', async () => {
   await assert.rejects(new User({}).validate());
   const user = new User({ name: valid.name, email: valid.email, passwordHash: 'hashed' });
   await user.validate(); assert.equal(user.role, 'CITIZEN'); assert.equal(User.schema.path('passwordHash').options.select, false);
+  assert.deepEqual(User.schema.path('role').enumValues, ['CITIZEN', 'RESPONSE_OPERATIONS_OFFICER', 'DISTRICT_RESOURCE_COORDINATION_OFFICER', 'STAFF_OFFICER']);
   assert.equal(User.schema.path('email').options.unique, true);
   assert.equal(Session.schema.path('expiresAt').options.index.expires, 0);
 });

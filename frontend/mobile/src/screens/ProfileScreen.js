@@ -17,10 +17,10 @@ export default function ProfileScreen({ navigation }) {
     catch (error) { Alert.alert('Unable to log out', error.response?.data?.message || 'Check your connection and try again.'); }
   }
   const stats = [['Reports', reports.length], ['Verified', reports.filter(r => r.status === 'VERIFIED').length], ['Pending', reports.filter(r => r.status === 'PENDING').length]];
+  const citizen = user?.role === 'CITIZEN';
   return <Screen title="Profile" subtitle="Your activity and preferences.">
-    <Card style={styles.identity}><View style={styles.avatar}><Icon name="person-outline" size={36} /></View><Text style={styles.name}>{user?.name}</Text><Text style={ui.muted}>{user?.email}</Text><Text style={ui.muted}>Citizen</Text><View style={ui.row}><Icon name="location-outline" size={16} /><Text style={ui.muted}>Location not selected</Text></View></Card>
-    <SectionTitle title="My Activity" />
-    <Card><View style={styles.stats}>{stats.map(([label, value]) => <View key={label} style={styles.stat}><Text style={styles.value}>{loading ? '—' : value}</Text><Text style={styles.statLabel}>{label}</Text></View>)}</View><Text style={styles.caption}>Based on receipts saved on this device.</Text></Card>
+    <Card style={styles.identity}><View style={styles.avatar}><Icon name="person-outline" size={36} /></View><Text style={styles.name}>{user?.name}</Text><Text style={ui.muted}>{user?.email}</Text><Text style={ui.muted}>{user?.role === 'STAFF_OFFICER' ? 'Staff Officer' : 'Citizen'}</Text><View style={ui.row}><Icon name="location-outline" size={16} /><Text style={ui.muted}>Location not selected</Text></View></Card>
+    {citizen && <><SectionTitle title="My Activity" /><Card><View style={styles.stats}>{stats.map(([label, value]) => <View key={label} style={styles.stat}><Text style={styles.value}>{loading ? '—' : value}</Text><Text style={styles.statLabel}>{label}</Text></View>)}</View><Text style={styles.caption}>Based on receipts saved on this device.</Text></Card></>}
     {GROUPS.map(group => <View key={group.title} style={{ gap: 12 }}><SectionTitle title={group.title} /><Card style={{ paddingVertical: 5 }}>{group.options.map(([title, icon, topic], index) => <Pressable key={topic} accessibilityRole="button" onPress={() => navigation.navigate('Preferences', { topic, title })} style={[styles.option, index > 0 && styles.separator]}><Icon name={icon} size={21} /><Text style={styles.optionText}>{title}</Text><Icon name="chevron-forward" size={17} color={c.muted} /></Pressable>)}</Card></View>)}
     <Button title={busy ? 'Logging out…' : 'Log out'} secondary icon="log-out-outline" disabled={busy} onPress={signOut} />
     <Text style={styles.version}>DISASTER CONNECT · VERSION 1.0.0</Text>

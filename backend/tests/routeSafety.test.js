@@ -26,6 +26,9 @@ const allowedWriteRoutes = [
   "PATCH /api/response-operations/warnings/:warningId",
   "POST /api/response-operations/incidents/:incidentId/resolve",
   "POST /api/response-operations/assignments/dispatch",
+  "POST /api/response-operations/operational-requests",
+  "PATCH /api/response-operations/operational-requests/:requestId/review",
+  "POST /api/response-operations/operational-requests/:requestId/dispatch",
 ].sort();
 
 for (const [prefix, router] of mountedRouters) {

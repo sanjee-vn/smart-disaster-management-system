@@ -26,6 +26,8 @@ import TeamSelectionPage from './pages/TeamSelectionPage';
 import ResponseAssignmentPage from './pages/ResponseAssignmentPage';
 import ShelterCoordinationPage from './pages/ShelterCoordinationPage';
 import ResponseMonitoringPage from './pages/ResponseMonitoringPage';
+import OperationalRequestsPage from './pages/OperationalRequestsPage';
+import DistrictResourceDashboard from './pages/DistrictResourceDashboard';
 import './App.css';
 
 const initialHazards = [
@@ -153,8 +155,10 @@ function App() {
         <Route path="/response-operations/incidents/:incidentId/shelters" element={<ShelterCoordinationPage />} />
         <Route path="/response-operations/incidents/:incidentId/assignment" element={<ResponseAssignmentPage />} />
         <Route path="/response-operations/incidents/:incidentId/teams" element={<TeamSelectionPage />} />
+        <Route path="/response-operations/incidents/:incidentId/requests" element={<OperationalRequestsPage />} />
         <Route path="/response-operations/incidents/:incidentId" element={<IncidentPlanningPage />} />
         <Route path="/response-operations" element={<ResponseOperationsDashboard />} />
+        <Route path="/resource-operations" element={<DistrictResourceDashboard />} />
         <Route path="/warnings/:warningId/review" element={<WarningReviewPage />} />
         <Route path="/warnings/:warningId/configure" element={<ConfigureWarningPage />} />
         <Route path="/warnings/:warningId/status" element={<WarningStatusPage />} />

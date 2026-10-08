@@ -4,6 +4,7 @@ const Agency = require("../models/Agency");
 const ResponseTeam = require("../models/ResponseTeam");
 const ResponseAssignment = require("../models/ResponseAssignment");
 const Distribution = require("../models/Distribution");
+const OperationalRequest = require("../models/OperationalRequest");
 
 const findWarningByWarningId = (warningId) => Warning.findOne({ warningId }).lean();
 const updateWarningByWarningId = (warningId, update) => Warning.findOneAndUpdate(
@@ -75,6 +76,7 @@ const resolveIncident = (incidentId, session) => Incident.findOneAndUpdate(
   { returnDocument: "after", runValidators: true, session }
 ).lean();
 const countOutstandingDistributions = (incidentId, session) => Distribution.countDocuments({ incidentId, status: "EN_ROUTE" }).session(session);
+const countOutstandingOperationalRequests = (incidentId, session) => OperationalRequest.countDocuments({ incidentId, status: { $in: ["PENDING", "APPROVED"] } }).session(session);
 
 module.exports = {
   findWarningByWarningId, updateWarningByWarningId, findIncidents, findIncidentByIncidentId,
@@ -83,5 +85,5 @@ module.exports = {
   updatePlannedAssignment, createAssignment, updateIncidentResponseStatus,
   findAssignmentWithDetailsById,
   findCurrentAssignmentByIncident, findAnyAssignmentByIncident, findTeamsForResolution, releaseDeployedTeams,
-  completeAssignment, resolveIncident, countOutstandingDistributions,
+  completeAssignment, resolveIncident, countOutstandingDistributions, countOutstandingOperationalRequests,
 };

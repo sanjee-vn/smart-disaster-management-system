@@ -230,6 +230,8 @@ const resolveResponse = async (incidentId) => {
 
       const outstanding = await repository.countOutstandingDistributions(incident._id, session);
       if (outstanding > 0) throw createError("Incident cannot be resolved while resource distributions are still en route", 409, "OUTSTANDING_DISTRIBUTIONS");
+      const outstandingRequests = await repository.countOutstandingOperationalRequests(incident._id, session);
+      if (outstandingRequests > 0) throw createError("Incident cannot be resolved while operational requests are pending approval or dispatch", 409, "OUTSTANDING_OPERATIONAL_REQUESTS");
 
       const teamIds = assignment.teamIds || [];
       const teams = await repository.findTeamsForResolution(teamIds, session);
@@ -256,7 +258,7 @@ const resolveResponse = async (incidentId) => {
       };
     });
   } catch (error) {
-    const domainCodes = ["INCIDENT_NOT_FOUND", "INCIDENT_ALREADY_RESOLVED", "RESPONSE_ASSIGNMENT_NOT_FOUND", "RESPONSE_NOT_RESOLVABLE", "OUTSTANDING_DISTRIBUTIONS", "TEAM_STATE_CONFLICT"];
+    const domainCodes = ["INCIDENT_NOT_FOUND", "INCIDENT_ALREADY_RESOLVED", "RESPONSE_ASSIGNMENT_NOT_FOUND", "RESPONSE_NOT_RESOLVABLE", "OUTSTANDING_DISTRIBUTIONS", "OUTSTANDING_OPERATIONAL_REQUESTS", "TEAM_STATE_CONFLICT"];
     if (error.code && domainCodes.includes(error.code)) throw error;
     if (isTransactionUnavailable(error)) throw createError("Atomic response resolution requires MongoDB transaction support.", 503, "TRANSACTION_UNAVAILABLE");
     throw createError("Response resolution could not be committed atomically.", 500, "RESPONSE_RESOLUTION_FAILED");
