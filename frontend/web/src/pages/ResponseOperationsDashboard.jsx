@@ -7,7 +7,7 @@ import ResponseSummaryCards from '../components/ResponseSummaryCards'
 import useResponseOperationsDashboard from '../hooks/useResponseOperationsDashboard'
 
 export default function ResponseOperationsDashboard() {
-  const { incidents, assignments, teams, shelters, errors, loading, retry } = useResponseOperationsDashboard()
+  const { incidents, assignments, teams, shelters, distributions, errors, loading, retry } = useResponseOperationsDashboard()
   if (loading) return <DashboardLayout activeSection="overview" breadcrumb="Operations / Response Operations" role="Response Officer"><div className="content"><div className="state skeleton" aria-label="Loading response operations" /></div></DashboardLayout>
 
   const activeIncidents = incidents.filter((incident) => incident.status !== 'RESOLVED')
@@ -16,7 +16,7 @@ export default function ResponseOperationsDashboard() {
     plannedResponses: assignments.filter((assignment) => assignment.status === 'PLANNED').length,
     deployedTeams: teams.filter((team) => team.status === 'DEPLOYED').length,
     activeShelters: shelters.filter((shelter) => shelter.status?.toLowerCase() !== 'inactive').length,
-    resourcesEnRoute: 0,
+    resourcesEnRoute: distributions.filter((distribution) => distribution.status === 'EN_ROUTE').length,
   }
   const hasErrors = Object.keys(errors).length > 0
 

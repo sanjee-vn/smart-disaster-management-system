@@ -10,8 +10,8 @@ const cards = [
 
 export default function ResponseSummaryCards({ metrics, errors }) {
   return <section className="response-summary-cards" aria-label="Operational summary">{cards.map(({ key, label, icon: Icon }) => {
-    const errorKey = key === 'activeIncidents' ? 'incidents' : key === 'plannedResponses' ? 'assignments' : key === 'deployedTeams' ? 'teams' : key === 'activeShelters' ? 'shelters' : null
+    const errorKey = key === 'activeIncidents' ? 'incidents' : key === 'plannedResponses' ? 'assignments' : key === 'deployedTeams' ? 'teams' : key === 'activeShelters' ? 'shelters' : 'distributions'
     const unavailable = errorKey && errors[errorKey]
-    return <article className="response-summary-card" key={key}><span className="response-metric-icon"><Icon size={18} /></span><div><span>{label}</span><strong>{unavailable ? '—' : metrics[key]}</strong><small>{unavailable ? 'Data unavailable' : key === 'resourcesEnRoute' ? 'No distribution feed yet' : 'Current operational data'}</small></div></article>
+    return <article className="response-summary-card" key={key}><span className="response-metric-icon"><Icon size={18} /></span><div><span>{label}</span><strong>{unavailable ? '—' : metrics[key]}</strong><small>{unavailable ? 'Data unavailable' : 'Current operational data'}</small></div></article>
   })}</section>
 }

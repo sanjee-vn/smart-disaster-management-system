@@ -9,4 +9,13 @@ const createDistribution = async (req, res, next) => {
   }
 };
 
-module.exports = { createDistribution };
+const listDistributions = async (req, res, next) => {
+  try {
+    const distributions = await distributionService.getDistributions(req.query);
+    res.json({ success: true, data: distributions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createDistribution, listDistributions };
