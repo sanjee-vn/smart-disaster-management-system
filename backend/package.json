@@ -8,8 +8,6 @@
   "scripts": {
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
-    "seed:shelters": "node src/seeds/seedShelters.js",
-    "seed:component03": "node src/seeds/seedComponent03.js",
     "seed:hazards": "node src/seeds/seedHazards.js",
     "seed:response-operations": "node src/seeds/seedResponseOperations.js",
     "test": "node --test",

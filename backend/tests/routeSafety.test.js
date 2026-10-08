@@ -7,6 +7,8 @@ const writeRoutes = routeLayers.flatMap((layer) => Object.keys(layer.route.metho
   .map((method) => `${method.toUpperCase()} ${layer.route.path}`));
 
 const allowedWriteRoutes = [
+  "POST /auth/register",
+  "POST /auth/login",
   "PATCH /hazards/:id",
   "PUT /hazards/:id/draft",
   "POST /warnings",

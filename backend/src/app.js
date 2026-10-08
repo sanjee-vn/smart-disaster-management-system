@@ -4,7 +4,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const connectDatabase = require("./config/database");
-const resourceCoordinationRoutes = require("./routes/resourceCoordinationRoutes");
 const hazardWarningRoutes = require("./routes/hazardWarningRoutes");
 const responseOperationsRoutes = require("./routes/responseOperationsRoutes");
 
@@ -40,7 +39,6 @@ app.get("/api/ready", (req, res) => {
 });
 
 app.use("/api", hazardWarningRoutes);
-app.use("/api/resource-coordination", resourceCoordinationRoutes);
 app.use("/api/response-operations", responseOperationsRoutes);
 
 app.use((req, res) => {
@@ -56,7 +54,10 @@ app.use((error, req, res, next) => {
   const status = error.name === "ValidationError" || error.name === "CastError"
     ? 400
     : (isClientError || 500);
-  if (status >= 500) console.error("API request failed:", error.name || "Error");
+  if (status >= 500) {
+    console.error("API request failed:", req.method, req.path, error.name || "Error");
+    if (process.env.NODE_ENV !== "production") console.error(error.stack);
+  }
   const message = status >= 500 ? "An unexpected server error occurred" : error.message;
   return res.status(status).json({
     success: false,

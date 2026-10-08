@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, FileText, House, Layers3, Menu, MessageSquare, MoreHorizontal, Send, Settings, Siren, Users, X, Activity } from 'lucide-react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Menu, MoreHorizontal, Send, Siren, X, Activity } from 'lucide-react';
 import { Badge, Brand, Button, Field, Header, MapPanel } from './components/ui.jsx';
 import DashboardScreen from './components/screens/Dashboard.jsx';
 import HazardDetailsScreen from './components/screens/HazardDetails.jsx';
@@ -10,22 +10,12 @@ import AffectedAreaScreen from './components/screens/AffectedArea.jsx';
 import WarningReviewScreen from './components/screens/WarningReview.jsx';
 import DeliveryStatusScreen from './components/screens/DeliveryStatus.jsx';
 import WarningRegisterScreen from './components/screens/WarningRegister.jsx';
-import PlaceholderPageScreen from './components/screens/PlaceholderPage.jsx';
-import ResourceCoordinationDashboard from './pages/ResourceCoordinationDashboard';
-import CreateDistributionPage from './pages/CreateDistributionPage';
-import ReviewDistributionPage from './pages/ReviewDistributionPage';
 import useHazardWarningData from './hooks/useHazardWarningData';
 import { getApiErrorMessage } from './services/apiClient';
-import ProcessingDistributionPage from './pages/ProcessingDistributionPage';
-import DistributionSuccessPlaceholder from './pages/DistributionSuccessPlaceholder';
-import WarningReviewPage from './pages/WarningReviewPage';
-import ConfigureWarningPage from './pages/ConfigureWarningPage';
-import WarningStatusPage from './pages/WarningStatusPage';
-import ResponseOperationsDashboard from './pages/ResponseOperationsDashboard';
-import IncidentPlanningPage from './pages/IncidentPlanningPage';
-import TeamSelectionPage from './pages/TeamSelectionPage';
-import ResponseAssignmentPage from './pages/ResponseAssignmentPage';
-import ShelterCoordinationPlaceholder from './pages/ShelterCoordinationPlaceholder';
+import { DmcReportReviewPage, DutyIncidentReportsPanel } from './pages/DemoRolePortals.jsx';
+import { loadDemoReports, DEMO_REPORTS_KEY } from './data/demoReportStore.js';
+import AuthPage from './pages/AuthPages.jsx';
+import { clearAuthSession, readAuthSession, saveAuthSession } from './services/authService';
 import './App.css';
 
 const initialWarning = {
@@ -45,21 +35,12 @@ const getDefaultSchedule = () => {
 }
 
 const navItems = [
-  { label: 'Dashboard', icon: House, screen: 'dashboard' },
   { label: 'Hazard Monitoring', icon: Activity, screen: 'dashboard' },
-  { label: 'Warnings', icon: Siren, screen: 'warnings' },
   { label: 'Incident Reports', icon: ClipboardList, screen: 'incidents' },
-  { label: 'Assessments', icon: FileText, screen: 'dashboard' },
-  { label: 'Resources', icon: Users, screen: 'resources' },
-  { label: 'Communications', icon: MessageSquare, screen: 'communications' },
-  { label: 'Reports', icon: Layers3, screen: 'reports' },
-  { label: 'Users & Roles', icon: Users, screen: 'users' },
-  { label: 'System Settings', icon: Settings, screen: 'settings' },
-  { label: 'Help & Support', icon: CircleHelp, screen: 'help' },
+  { label: 'Warnings', icon: Siren, screen: 'warnings' },
 ]
 
-function HazardWarningApp() {
-  const routeNavigate = useNavigate()
+function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [], onSelectReport, portalRole = 'duty' }) {
   const { hazards, warnings, loading, error, refresh, updateHazard: saveHazard, loadDraft, saveDraft: persistDraft, publish, retry, escalate, cancel } = useHazardWarningData()
   const [screen, setScreen] = useState('dashboard')
   const [selectedHazardId, setSelectedHazardId] = useState('')
@@ -68,7 +49,7 @@ function HazardWarningApp() {
   const [modal, setModal] = useState('')
   const [toast, setToast] = useState('')
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [activeNav, setActiveNav] = useState('Dashboard')
+  const [activeNav, setActiveNav] = useState('Hazard Monitoring')
   const [issueId, setIssueId] = useState('')
   const [page, setPage] = useState(1)
   const [checks, setChecks] = useState([true, true, true, true])
@@ -97,7 +78,27 @@ function HazardWarningApp() {
     setMobileMenu(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  const openReportWarning = (report) => {
+    if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
+    const hazard = hazards.find((item) => item.district === report.district) || hazards[0]
+    if (!hazard) { setToast('Load hazard records before starting a warning'); return }
+    if (onSelectReport) onSelectReport(report)
+    setSelectedHazardId(hazard.id)
+    setEvidenceRequested(false)
+    setWarning((current) => ({
+      ...current,
+      ...getDefaultSchedule(),
+      level: report.severity || 'High',
+      title: `${report.disasterType || hazard.type} Warning — ${report.areaLabel || report.district}`,
+      message: report.description,
+      districts: [report.district || hazard.district],
+      areas: [report.areaLabel || report.district || hazard.district],
+      remarks: `Based on verified citizen report ${report.reportId || report.id}.`,
+    }))
+    navigate('area', 'Hazard Monitoring')
+  }
   const beginWarning = async (id = selectedHazardId || hazards[0]?.id) => {
+    if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
     const hazard = hazards.find((item) => item.id === id)
     if (!hazard) { setToast('Load hazard records before starting a warning'); return }
     setSelectedHazardId(id)
@@ -131,6 +132,7 @@ function HazardWarningApp() {
       const created = await publish({ hazardId: selectedHazardId, warning })
       setIssueId(created.id)
       setModal('')
+      if (activeReport && onWarningIssued) onWarningIssued(activeReport.id, created.id)
       navigate('delivery', 'Warnings')
       setToast('Warning recorded and queued. No external delivery provider is connected.')
     } catch (requestError) {
@@ -155,9 +157,24 @@ function HazardWarningApp() {
 
   const screenProps = { Header, Badge, Button, Field, MapPanel, hazards, selectedHazard, selectedHazardId, setSelectedHazardId, warning, setWarning, warnings, issuedWarning, filter, setFilter, filteredHazards, navigate, beginWarning, updateHazard, updateWarning, toggleInList, saveDraft, retryChannel, refreshData: refresh, setModal, setToast, setPage, page, reportCount, setReportCount, photoCount, setPhotoCount, setIssueId, evidenceRequested, setEvidenceRequested, checks, toggleCheck, publishWarning, cancelIssuedWarning };
   const pageByScreen = { dashboard: DashboardScreen, details: HazardDetailsScreen, assessment: EventAssessmentScreen, level: WarningLevelScreen, area: AffectedAreaScreen, review: WarningReviewScreen, delivery: DeliveryStatusScreen, warnings: WarningRegisterScreen };
-  const currentScreen = ['incidents', 'resources', 'communications', 'reports', 'users', 'settings', 'help'].includes(screen) ? <PlaceholderPageScreen kind={screen} {...screenProps} /> : React.createElement(pageByScreen[screen] || DashboardScreen, screenProps);
+  const warningsWithHazardNames = warnings.map((item) => {
+    const hazard = hazards.find((candidate) => candidate.id === item.hazardId)
+    return {
+      ...item,
+      hazardId: hazard ? `${hazard.type} — ${hazard.district}` : item.warning?.title || item.title || 'Hazard report',
+    }
+  })
+  const currentScreen = screen === 'incidents'
+    ? <DutyIncidentReportsPanel reports={reports} onIssueWarning={(report) => {
+      if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue or review warning dispatch.'); return }
+      if (report.status === 'WARNING_ISSUED') navigate('warnings', 'Warnings')
+      else openReportWarning(report)
+    }} />
+    : screen === 'warnings'
+      ? <WarningRegisterScreen {...screenProps} warnings={warningsWithHazardNames} />
+      : React.createElement(pageByScreen[screen] || DashboardScreen, screenProps);
 
-  return <div className="app-shell"><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{navItems.map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => label === 'Resources' ? routeNavigate('/resource-coordination') : navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>{loading ? 'Connecting to API' : error ? 'API unavailable' : 'API connected'}</span></div><button className="user-card" onClick={() => setToast('Signed in as Assessment Officer')}><span className="avatar">AO</span><span><b>Assessment Officer</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
+  return <div className="app-shell" data-portal-role={portalRole}><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">{portalRole === 'district' ? 'DISTRICT OFFICER' : 'DUTY OFFICER'}</div><nav>{navItems.filter(({ label }) => portalRole === 'duty' || label !== 'Warnings').map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>{loading ? 'Connecting to API' : error ? 'API unavailable' : 'API connected'}</span></div><button className="user-card" onClick={onLogout}><span className="avatar">{portalRole === 'district' ? 'DS' : 'DO'}</span><span><b>{portalRole === 'district' ? 'District Officer' : 'Duty Officer'}</b><small>{portalRole === 'district' ? 'District Operations' : 'DMC · National Operations'}</small></span><span className="user-signout">Sign out</span></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
     <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{activeNav}</b></div><div className="topbar-actions"><span className="topbar-date">{new Date().toLocaleDateString('en-LK', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</span><button className="notification-button" aria-label="Notifications" onClick={() => setToast('You are up to date with all system notifications')}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">AO</span><span><b>Assessment Officer</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className="content-area">{error && <div className="api-status-banner" role="alert"><span>{error}</span><Button variant="secondary-blue" onClick={() => void refresh()}>Retry connection</Button></div>}{!loading && !error && hazards.length === 0 && <div className="api-status-banner"><span>No hazard records found. Start the backend, then run <code>npm run seed:hazards</code> from the backend folder.</span><Button variant="secondary-blue" onClick={() => void refresh()}>Refresh</Button></div>}{currentScreen}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Hazard and warning records stored in MongoDB <i className="online-dot"/></span></footer></div></main>
     {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal('') }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={19}/></button>{modal === 'hazard-actions' ? <><span className="modal-icon amber"><MoreHorizontal/></span><h2 id="modal-title">Hazard actions</h2><p>Choose an action for {selectedHazard.id} in {selectedHazard.district}.</p><div className="modal-actions vertical"><Button variant="primary" onClick={() => { setModal(''); navigate('details', 'Hazard Monitoring') }}>Review hazard details</Button><Button variant="teal-button" onClick={() => { setModal(''); beginWarning(selectedHazard.id) }}>Create warning draft</Button><Button onClick={() => setModal('')}>Close</Button></div></> : modal === 'publish' ? <><span className="modal-icon warning-icon"><AlertTriangle/></span><div className="modal-eyebrow">FINAL CONFIRMATION</div><h2 id="modal-title">Confirm publication</h2><p>You are about to publish this <b>{warning.level.toLowerCase()} warning</b> to <b>{warning.areas.length} affected areas</b> through {warning.channels.join(', ')}. This records the warning and adds it to the delivery queue. No external channel provider will send it from this build.</p><div className="modal-summary"><span>Hazard <b>{selectedHazard.id}</b></span><span>Target audience <b>{(warning.areas.length * 12480).toLocaleString()} people</b></span></div><div className="modal-actions"><Button onClick={() => setModal('')}>No, go back</Button><Button variant="danger-button" icon={Send} disabled={publishing} onClick={publishWarning}>{publishing ? 'Recording?' : 'Record warning'}</Button></div></> : modal === 'escalate' ? <><span className="modal-icon blue"><ArrowRight/></span><div className="modal-eyebrow">ESCALATION</div><h2 id="modal-title">Escalate this warning?</h2><p>This marks the warning for regional review. No external authority notification is configured.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Go back</Button><Button variant="primary" onClick={dispatchEscalation}>Confirm escalation</Button></div></> : modal === 'cancel-warning' ? <><span className="modal-icon danger"><X/></span><div className="modal-eyebrow">STOP DELIVERY</div><h2 id="modal-title">Cancel this warning?</h2><p>Further delivery attempts will stop. The issued warning will be marked as cancelled in the audit history.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Keep warning active</Button><Button variant="danger-button" onClick={cancelIssuedWarning}>Confirm cancellation</Button></div></> : <><span className="modal-icon amber"><AlertTriangle/></span><h2 id="modal-title">Cancel this process?</h2><p>Your latest saved draft is stored in MongoDB for this hazard.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Continue editing</Button><Button variant="danger-button" onClick={async () => { if (await saveDraft()) { setModal(''); navigate('dashboard', 'Dashboard') } }}>Save and exit</Button></div></>}</section></div>}
@@ -166,31 +183,54 @@ function HazardWarningApp() {
 }
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HazardWarningApp />} />
-        <Route path="/resource-coordination" element={<ResourceCoordinationDashboard />} />
-        <Route path="/resource-coordination/distributions/new/:shelterId" element={<CreateDistributionPage />} />
-        <Route path="/resource-coordination/distributions/review" element={<ReviewDistributionPage />} />
-        <Route path="/resource-coordination/distributions/processing" element={<ProcessingDistributionPage />} />
-        <Route path="/resource-coordination/distributions/success" element={<DistributionSuccessPlaceholder />} />
-        <Route path="/response-operations/incidents/:incidentId/resources" element={<ResourceCoordinationDashboard />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/new/:shelterId" element={<CreateDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/review" element={<ReviewDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/resources/processing" element={<ProcessingDistributionPage />} />
-        <Route path="/response-operations/incidents/:incidentId/shelters" element={<ShelterCoordinationPlaceholder />} />
-        <Route path="/response-operations/incidents/:incidentId/assignment" element={<ResponseAssignmentPage />} />
-        <Route path="/response-operations/incidents/:incidentId/teams" element={<TeamSelectionPage />} />
-        <Route path="/response-operations/incidents/:incidentId" element={<IncidentPlanningPage />} />
-        <Route path="/response-operations" element={<ResponseOperationsDashboard />} />
-        <Route path="/warnings/:warningId/review" element={<WarningReviewPage />} />
-        <Route path="/warnings/:warningId/configure" element={<ConfigureWarningPage />} />
-        <Route path="/warnings/:warningId/status" element={<WarningStatusPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  )
+  const [authSession, setAuthSession] = useState(() => readAuthSession())
+  const role = authSession?.user?.role === 'dmc_officer' ? 'dmc' : authSession?.user?.role === 'duty_officer' ? 'duty' : authSession?.user?.role === 'district_officer' ? 'district' : ''
+  const [reports, setReports] = useState(() => loadDemoReports())
+  const [activeReport, setActiveReport] = useState(null)
+
+  useEffect(() => {
+    window.localStorage.setItem(DEMO_REPORTS_KEY, JSON.stringify(reports))
+  }, [reports])
+
+  const login = (session) => {
+    saveAuthSession(session)
+    setAuthSession(session)
+  }
+  const logout = () => {
+    clearAuthSession()
+    setAuthSession(null)
+    setActiveReport(null)
+  }
+  const updateReport = (id, changes) => {
+    setReports((current) => current.map((report) => report.id === id ? { ...report, ...changes } : report))
+  }
+  const issueWarningFor = (report) => setActiveReport(report)
+  const finishWarning = (reportId, warningId) => {
+    updateReport(reportId, { status: 'WARNING_ISSUED', warningId, warningIssuedAt: new Date().toISOString() })
+    setActiveReport(null)
+  }
+  const loginPage = <AuthPage mode="login" onAuthenticated={login}/>
+  const registerPage = <AuthPage mode="register" onAuthenticated={login}/>
+  const dmcPage = role === 'dmc'
+    ? <DmcReportReviewPage reports={reports} onUpdateReport={updateReport} onLogout={logout}/>
+    : <Navigate to={role ? '/duty' : '/login'} replace/>
+  const dutyPage = role === 'duty'
+    ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="duty"/>
+    : <Navigate to={role ? '/dmc' : '/login'} replace/>
+  const districtPage = role === 'district'
+    ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="district"/>
+    : <Navigate to={role ? '/duty' : '/login'} replace/>
+
+  return <BrowserRouter><Routes>
+    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : '/login'} replace/>}/>
+    <Route path="/login" element={role ? <Navigate to="/" replace/> : loginPage}/>
+    <Route path="/register" element={role ? <Navigate to="/" replace/> : registerPage}/>
+    <Route path="/dmc" element={dmcPage}/>
+    <Route path="/duty" element={dutyPage}/>
+    <Route path="/duty/hazard-monitoring" element={dutyPage}/>
+    <Route path="/district" element={districtPage}/>
+    <Route path="*" element={<Navigate to="/" replace/>}/>
+  </Routes></BrowserRouter>
 }
 
 export default App

@@ -28,26 +28,31 @@ const toHazardResponse = (hazard) => ({
   updatedAt: hazard.updatedAt,
 });
 
-const toWarningResponse = (warning) => ({
-  id: warning.warningId,
-  hazardId: warning.hazardId,
-  level: warning.level,
-  status: warning.status,
-  district: warning.district,
-  areas: warning.areas,
-  channels: warning.channels,
-  target: warning.target,
-  delivered: warning.delivered,
-  pending: warning.pending,
-  failed: warning.failed,
-  escalated: warning.escalated,
-  warning: warning.warning,
-  title: warning.warning.title,
-  deliveryChannels: warning.deliveryChannels,
-  audit: warning.audit,
-  createdAt: warning.createdAt,
-  updatedAt: warning.updatedAt,
-});
+const toWarningResponse = (warning) => {
+  const details = warning.warning;
+  const title = details?.title || warning.title || (warning.hazardType ? `${warning.hazardType} Warning` : "Warning details unavailable");
+
+  return {
+    id: warning.warningId,
+    hazardId: warning.hazardId,
+    level: warning.level || warning.severity,
+    status: warning.status,
+    district: warning.district,
+    areas: warning.areas || (warning.targetArea ? [warning.targetArea] : []),
+    channels: warning.channels || [],
+    target: warning.target ?? 0,
+    delivered: warning.delivered ?? 0,
+    pending: warning.pending ?? 0,
+    failed: warning.failed ?? 0,
+    escalated: warning.escalated ?? false,
+    warning: details || { title, message: warning.message || "" },
+    title,
+    deliveryChannels: warning.deliveryChannels || [],
+    audit: warning.audit || [],
+    createdAt: warning.createdAt,
+    updatedAt: warning.updatedAt,
+  };
+};
 
 const createHazardWarningService = (dependencies = {}) => {
   const hazards = dependencies.hazardRepository || hazardRepository;
