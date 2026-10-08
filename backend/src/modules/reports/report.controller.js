@@ -17,4 +17,29 @@ async function submitGroundReport(req, res) {
   }
 }
 
-module.exports = { submitGroundReport };
+async function listGroundReports(req, res, next) {
+  try { return res.json({ success: true, data: await reportService.listReports(req.query) }); }
+  catch (error) { return next(error); }
+}
+
+async function listMyGroundReports(req, res, next) {
+  try { return res.json({ success: true, data: await reportService.listCitizenReports(req.user.id) }); }
+  catch (error) { return next(error); }
+}
+
+async function reviewGroundReport(req, res, next) {
+  try { return res.json({ success: true, data: await reportService.updateReportReview(req.params.id, req.body) }); }
+  catch (error) { return next(error); }
+}
+
+async function listPublishedAlerts(_req, res, next) {
+  try { return res.json({ success: true, data: await reportService.listPublishedAlerts() }); }
+  catch (error) { return next(error); }
+}
+
+async function ensureReportHazard(req, res, next) {
+  try { return res.json({ success: true, data: await reportService.ensureHazardForReport(req.params.id) }); }
+  catch (error) { return next(error); }
+}
+
+module.exports = { submitGroundReport, listGroundReports, listMyGroundReports, reviewGroundReport, listPublishedAlerts, ensureReportHazard };

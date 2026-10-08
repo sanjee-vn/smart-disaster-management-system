@@ -1,7 +1,10 @@
+import { useCallback, useState } from 'react';
 import { Alert, Linking, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Button, Card, EmptyState, Icon, Notice, Screen, SectionTitle, ui } from '../components/UI';
 import { colors as c } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { getPublishedAlerts } from '../services/reports';
 
 async function openLink(url) {
   try { await Linking.openURL(url); } catch { Alert.alert('Unable to open', 'Please open this address or phone number manually.'); }
@@ -11,9 +14,29 @@ const CONTACTS = [
   { title: 'Suwa Seriya', detail: 'Emergency ambulance service', number: '1990', source: 'https://www.1990.lk/' },
 ];
 export function AlertsScreen() {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const loadAlerts = useCallback(() => {
+    let active = true;
+    setLoading(true);
+    getPublishedAlerts()
+      .then(data => { if (active) { setAlerts(data); setError(''); } })
+      .catch(() => { if (active) setError('Published alerts could not be loaded. Check your connection and try again.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  useFocusEffect(loadAlerts);
   return <Screen insetTop={false} title="Alerts & Updates" subtitle="Disaster warning information">
-    <Notice warning>A live alert feed is not connected. An empty list does not mean your area is safe.</Notice>
-    <EmptyState icon="notifications-outline" title="Live updates unavailable" message="Official alerts and incident updates will appear here when the feed is connected. No demonstration warnings are displayed." />
+    {error && <Notice warning>{error}</Notice>}
+    {loading && <EmptyState icon="notifications-outline" title="Loading alerts" message="Checking for published DMC warnings..." />}
+    {!loading && !error && alerts.length === 0 && <EmptyState icon="notifications-outline" title="No published alerts" message="There are no active warnings in the system right now. Continue to follow official local instructions." />}
+    {!loading && alerts.map(item => <Card key={item.id}>
+      <View style={ui.row}><Icon name="warning-outline" color={item.level === 'Very High' || item.level === 'High' ? c.error : c.primary} /><View style={ui.flex}><Text style={ui.cardTitle}>{item.title}</Text><Text style={ui.muted}>{item.level} · {item.district}</Text></View></View>
+      <Text style={[ui.muted, { marginTop: 10 }]}>{item.message}</Text>
+      {item.instructions ? <Notice>{item.instructions}</Notice> : null}
+      <Text style={[ui.muted, { marginTop: 8, fontSize: 11 }]}>Published {new Date(item.publishedAt).toLocaleString('en-LK')}</Text>
+    </Card>)}
     <Card><SectionTitle title="Official information" /><Text style={ui.muted}>Visit the Sri Lanka Disaster Management Centre for official updates and instructions.</Text><Button title="Open DMC website" secondary icon="open-outline" onPress={() => openLink('https://www.dmc.gov.lk/')} /></Card>
   </Screen>;
 }

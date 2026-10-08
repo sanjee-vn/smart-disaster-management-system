@@ -4,6 +4,8 @@ const hazardRepository = require("../repositories/hazardRepository");
 const warningRepository = require("../repositories/warningRepository");
 const warningDraftRepository = require("../repositories/warningDraftRepository");
 const AppError = require("../errors/AppError");
+const GroundReport = require("../modules/reports/report.model");
+const Incident = require("../models/Incident");
 
 const HAZARD_SEVERITIES = ["Low", "Medium", "High"];
 const HAZARD_STATUSES = ["Monitoring", "Active", "Warning Issued", "Pending"];
@@ -35,6 +37,7 @@ const toWarningResponse = (warning) => {
   return {
     id: warning.warningId,
     hazardId: warning.hazardId,
+    reportId: warning.sourceReportId ? String(warning.sourceReportId) : "",
     level: warning.level || warning.severity,
     status: warning.status,
     district: warning.district,
@@ -189,10 +192,26 @@ const createHazardWarningService = (dependencies = {}) => {
     return withTransaction(async (session) => {
       const hazard = await hazards.findById(hazardId, session);
       if (!hazard) throw new AppError("Hazard not found", 404, "HAZARD_NOT_FOUND");
+      const reportId = String(payload?.reportId || "").trim();
+      let report = null;
+      if (reportId) {
+        if (!mongoose.isValidObjectId(reportId)) throw new AppError("Ground report not found", 404, "REPORT_NOT_FOUND");
+        report = await GroundReport.findById(reportId).session(session).lean();
+        if (!report) throw new AppError("Ground report not found", 404, "REPORT_NOT_FOUND");
+        if (report.status === "WARNING_ISSUED" && report.warningId) {
+          const existingWarning = await warnings.findById(report.warningId, session);
+          if (existingWarning) return toWarningResponse(existingWarning);
+        }
+        if (report.status !== "FORWARDED_TO_DUTY_OFFICER") {
+          throw new AppError("Only a forwarded ground report can be used to issue a warning", 409, "REPORT_NOT_FORWARDED");
+        }
+      }
       const now = clock();
+      const warningId = makeWarningId();
       const document = await warnings.create({
-        warningId: makeWarningId(),
+        warningId,
         hazardId,
+        sourceReportId: report?._id || null,
         level: details.level,
         status: "Published",
         district: details.districts.join(", ") || hazard.district,
@@ -210,6 +229,27 @@ const createHazardWarningService = (dependencies = {}) => {
       }, session);
       const updatedHazard = await hazards.updateById(hazardId, { status: "Warning Issued" }, session);
       if (!updatedHazard) throw new AppError("Hazard not found", 404, "HAZARD_NOT_FOUND");
+      if (report) {
+        const updatedReport = await GroundReport.findOneAndUpdate(
+          { _id: report._id, status: "FORWARDED_TO_DUTY_OFFICER" },
+          { $set: { status: "WARNING_ISSUED", warningId, warningIssuedAt: now } },
+          { new: true, session },
+        );
+        if (!updatedReport) throw new AppError("Ground report status changed before publication", 409, "REPORT_STATE_CHANGED");
+      }
+      const incidentId = `INC-${now.getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`;
+      const severity = details.level === "Very High" ? "EMERGENCY" : details.level === "High" ? "WARNING" : "WATCH";
+      await Incident.create([{
+        incidentId,
+        warningId: document._id,
+        hazardType: hazard.type,
+        severity,
+        district: details.districts.join(", ") || hazard.district,
+        affectedArea: details.areas.join(", "),
+        affectedPopulation: target,
+        status: "ACTIVE",
+        createdAt: now,
+      }], { session });
       return toWarningResponse(document);
     });
   };

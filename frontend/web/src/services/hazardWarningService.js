@@ -3,6 +3,7 @@ import api from './apiClient'
 const unwrap = (response) => response.data.data
 
 export const getHazards = async (filters = {}) => unwrap(await api.get('/hazards', { params: filters }))
+export const createHazardFromReport = async (reportId) => unwrap(await api.post(`/reports/${encodeURIComponent(reportId)}/hazard`))
 export const updateHazard = async (id, changes) => unwrap(await api.patch(`/hazards/${encodeURIComponent(id)}`, changes))
 export const getWarningDraft = async (hazardId) => unwrap(await api.get(`/hazards/${encodeURIComponent(hazardId)}/draft`))
 export const saveWarningDraft = async (hazardId, warning) => unwrap(await api.put(`/hazards/${encodeURIComponent(hazardId)}/draft`, { warning }))

@@ -9,6 +9,8 @@ const roles = [
   { value: 'dmc_officer', label: 'DMC Officer' },
   { value: 'duty_officer', label: 'Duty Officer' },
   { value: 'district_officer', label: 'District Officer' },
+  { value: 'district_resource_officer', label: 'District / Resource Coordination Officer' },
+  { value: 'response_officer', label: 'Response / Operations Officer' },
 ]
 const districts = ['Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya']
 
@@ -37,7 +39,7 @@ export default function AuthPage({ mode, onAuthenticated }) {
     <label>Email address<input type="email" autoComplete="email" value={form.email} onChange={(event) => update('email', event.target.value)} required placeholder="name@dmc.gov.lk"/></label>
     <label>Password<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} value={form.password} onChange={(event) => update('password', event.target.value)} required minLength={isRegister ? 8 : undefined} placeholder={isRegister ? 'At least 8 characters' : 'Enter your password'}/></label>
     <label>Portal role<select value={form.role} onChange={(event) => update('role', event.target.value)}>{roles.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
-    {isRegister && form.role === 'district_officer' && <label>District<select value={form.district} onChange={(event) => update('district', event.target.value)} required><option value="">Select your district</option>{districts.map((district) => <option key={district}>{district}</option>)}</select></label>}
+    {isRegister && ['district_officer', 'district_resource_officer'].includes(form.role) && <label>District<select value={form.district} onChange={(event) => update('district', event.target.value)} required><option value="">Select your district</option>{districts.map((district) => <option key={district}>{district}</option>)}</select></label>}
     {error && <div className="auth-error" role="alert">{error}</div>}
     <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : isRegister ? 'Create account' : 'Sign in'}<ArrowRight size={16}/></button>
   </form><div className="auth-switch">{isRegister ? 'Already registered?' : 'Need an account?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Register'}</Link></div><div className="auth-note"><KeyRound size={14}/><span>Choose the role registered to your account. Your account role is checked by the server during sign in.</span></div></section></main>

@@ -13,9 +13,20 @@ import WarningRegisterScreen from './components/screens/WarningRegister.jsx';
 import useHazardWarningData from './hooks/useHazardWarningData';
 import { getApiErrorMessage } from './services/apiClient';
 import { DmcReportReviewPage, DutyIncidentReportsPanel } from './pages/DemoRolePortals.jsx';
-import { loadDemoReports, DEMO_REPORTS_KEY } from './data/demoReportStore.js';
 import AuthPage from './pages/AuthPages.jsx';
 import { clearAuthSession, readAuthSession, saveAuthSession } from './services/authService';
+import { getGroundReports, reviewGroundReport } from './services/reportWorkflowService';
+import ResponseOperationsDashboard from './pages/ResponseOperationsDashboard.jsx';
+import IncidentPlanningPage from './pages/IncidentPlanningPage.jsx';
+import TeamSelectionPage from './pages/TeamSelectionPage.jsx';
+import ResponseAssignmentPage from './pages/ResponseAssignmentPage.jsx';
+import ShelterCoordinationPage from './pages/ShelterCoordinationPage.jsx';
+import ResourceCoordinationDashboard from './pages/ResourceCoordinationDashboard.jsx';
+import CreateDistributionPage from './pages/CreateDistributionPage.jsx';
+import ReviewDistributionPage from './pages/ReviewDistributionPage.jsx';
+import ProcessingDistributionPage from './pages/ProcessingDistributionPage.jsx';
+import DistributionSuccessPage from './pages/DistributionSuccessPage.jsx';
+import ResponseMonitoringPage from './pages/ResponseMonitoringPage.jsx';
 import './App.css';
 
 const initialWarning = {
@@ -41,7 +52,7 @@ const navItems = [
 ]
 
 function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [], onSelectReport, portalRole = 'duty' }) {
-  const { hazards, warnings, loading, error, refresh, updateHazard: saveHazard, loadDraft, saveDraft: persistDraft, publish, retry, escalate, cancel } = useHazardWarningData()
+  const { hazards, warnings, loading, error, refresh, updateHazard: saveHazard, ensureReportHazard, loadDraft, saveDraft: persistDraft, publish, retry, escalate, cancel } = useHazardWarningData()
   const [screen, setScreen] = useState('dashboard')
   const [selectedHazardId, setSelectedHazardId] = useState('')
   const [warning, setWarning] = useState(initialWarning)
@@ -57,6 +68,7 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
   const [photoCount, setPhotoCount] = useState('14')
   const [evidenceRequested, setEvidenceRequested] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [workflowReportId, setWorkflowReportId] = useState('')
 
   const selectedHazard = hazards.find((hazard) => hazard.id === selectedHazardId) || hazards[0]
   const issuedWarning = warnings.find((item) => item.id === issueId) || warnings[0]
@@ -78,24 +90,28 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
     setMobileMenu(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const openReportWarning = (report) => {
+  const openReportWarning = async (report) => {
     if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
-    const hazard = hazards.find((item) => item.district === report.district) || hazards[0]
-    if (!hazard) { setToast('Load hazard records before starting a warning'); return }
-    if (onSelectReport) onSelectReport(report)
-    setSelectedHazardId(hazard.id)
-    setEvidenceRequested(false)
-    setWarning((current) => ({
-      ...current,
-      ...getDefaultSchedule(),
-      level: report.severity || 'High',
-      title: `${report.disasterType || hazard.type} Warning — ${report.areaLabel || report.district}`,
-      message: report.description,
-      districts: [report.district || hazard.district],
-      areas: [report.areaLabel || report.district || hazard.district],
-      remarks: `Based on verified citizen report ${report.reportId || report.id}.`,
-    }))
-    navigate('area', 'Hazard Monitoring')
+    try {
+      const hazard = await ensureReportHazard(report.id)
+      setWorkflowReportId(report.id)
+      if (onSelectReport) onSelectReport(report)
+      setSelectedHazardId(hazard.id)
+      setEvidenceRequested(false)
+      setWarning((current) => ({
+        ...current,
+        ...getDefaultSchedule(),
+        level: report.severity || hazard.severity || 'High',
+        title: `${report.disasterType || hazard.type} Warning — ${hazard.district}`,
+        message: report.description,
+        districts: [hazard.district],
+        areas: [report.areaLabel || hazard.district],
+        remarks: `Based on verified citizen report ${report.reportId || report.id}.`,
+      }))
+      navigate('assessment', 'Assessments')
+    } catch (requestError) {
+      setToast(getApiErrorMessage(requestError, 'Could not prepare this report for warning creation.'))
+    }
   }
   const beginWarning = async (id = selectedHazardId || hazards[0]?.id) => {
     if (portalRole !== 'duty') { setToast('Only a Duty Officer account can issue a warning.'); return }
@@ -129,10 +145,12 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
     if (publishing) return
     setPublishing(true)
     try {
-      const created = await publish({ hazardId: selectedHazardId, warning })
+      const sourceReportId = workflowReportId || activeReport?.id
+      const created = await publish({ hazardId: selectedHazardId, reportId: sourceReportId, warning })
       setIssueId(created.id)
       setModal('')
-      if (activeReport && onWarningIssued) onWarningIssued(activeReport.id, created.id)
+      if (sourceReportId && onWarningIssued) onWarningIssued(sourceReportId, created.id)
+      setWorkflowReportId('')
       navigate('delivery', 'Warnings')
       setToast('Warning recorded and queued. No external delivery provider is connected.')
     } catch (requestError) {
@@ -184,13 +202,17 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
 
 function App() {
   const [authSession, setAuthSession] = useState(() => readAuthSession())
-  const role = authSession?.user?.role === 'dmc_officer' ? 'dmc' : authSession?.user?.role === 'duty_officer' ? 'duty' : authSession?.user?.role === 'district_officer' ? 'district' : ''
-  const [reports, setReports] = useState(() => loadDemoReports())
+  const roleMap = { dmc_officer: 'dmc', duty_officer: 'duty', district_officer: 'district', district_resource_officer: 'resource', response_officer: 'response' }
+  const role = roleMap[authSession?.user?.role] || ''
+  const [reports, setReports] = useState([])
   const [activeReport, setActiveReport] = useState(null)
 
   useEffect(() => {
-    window.localStorage.setItem(DEMO_REPORTS_KEY, JSON.stringify(reports))
-  }, [reports])
+    if (!['dmc', 'duty'].includes(role)) return undefined
+    let active = true
+    getGroundReports().then((data) => { if (active) setReports(data) }).catch(() => { if (active) setReports([]) })
+    return () => { active = false }
+  }, [role])
 
   const login = (session) => {
     saveAuthSession(session)
@@ -201,12 +223,19 @@ function App() {
     setAuthSession(null)
     setActiveReport(null)
   }
-  const updateReport = (id, changes) => {
-    setReports((current) => current.map((report) => report.id === id ? { ...report, ...changes } : report))
+  const updateReport = async (id, changes) => {
+    const updated = await reviewGroundReport(id, changes)
+    setReports((current) => current.map((report) => report.id === id ? updated : report))
+    return updated
   }
   const issueWarningFor = (report) => setActiveReport(report)
   const finishWarning = (reportId, warningId) => {
-    updateReport(reportId, { status: 'WARNING_ISSUED', warningId, warningIssuedAt: new Date().toISOString() })
+    setReports((current) => current.map((report) => report.id === reportId ? {
+      ...report,
+      status: 'WARNING_ISSUED',
+      warningId,
+      warningIssuedAt: new Date().toISOString(),
+    } : report))
     setActiveReport(null)
   }
   const loginPage = <AuthPage mode="login" onAuthenticated={login}/>
@@ -220,15 +249,35 @@ function App() {
   const districtPage = role === 'district'
     ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="district"/>
     : <Navigate to={role ? '/duty' : '/login'} replace/>
+  const resourceEntry = role === 'resource'
+    ? <ResponseOperationsDashboard/>
+    : <Navigate to={role ? '/' : '/login'} replace/>
+  const responseEntry = role === 'response'
+    ? <ResponseOperationsDashboard/>
+    : <Navigate to={role ? '/' : '/login'} replace/>
+  const resourceIncidentPage = role === 'resource' ? <ResourceCoordinationDashboard/> : <Navigate to="/" replace/>
+  const responseOnly = (page) => role === 'response' ? page : <Navigate to="/" replace/>
+  const resourceOnly = (page) => role === 'resource' ? page : <Navigate to="/" replace/>
 
   return <BrowserRouter><Routes>
-    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : '/login'} replace/>}/>
+    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : role === 'resource' ? '/response-operations?area=resources' : role === 'response' ? '/response-operations' : '/login'} replace/>}/>
     <Route path="/login" element={role ? <Navigate to="/" replace/> : loginPage}/>
     <Route path="/register" element={role ? <Navigate to="/" replace/> : registerPage}/>
     <Route path="/dmc" element={dmcPage}/>
     <Route path="/duty" element={dutyPage}/>
     <Route path="/duty/hazard-monitoring" element={dutyPage}/>
     <Route path="/district" element={districtPage}/>
+    <Route path="/response-operations" element={role === 'resource' ? resourceEntry : responseEntry}/>
+    <Route path="/response-operations/incidents/:incidentId" element={responseOnly(<IncidentPlanningPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/teams" element={responseOnly(<TeamSelectionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/assignment" element={responseOnly(<ResponseAssignmentPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/shelters" element={responseOnly(<ShelterCoordinationPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/monitoring" element={responseOnly(<ResponseMonitoringPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources" element={resourceIncidentPage}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/new/:shelterId" element={resourceOnly(<CreateDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/review" element={resourceOnly(<ReviewDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/processing" element={resourceOnly(<ProcessingDistributionPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/resources/success" element={resourceOnly(<DistributionSuccessPage/>)}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes></BrowserRouter>
 }

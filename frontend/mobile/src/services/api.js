@@ -1,7 +1,9 @@
 import { create } from 'axios';
 
+const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 const api = create({
-  baseURL: 'http://10.80.190.202:5000/api',
+  baseURL: apiBaseUrl,
   timeout: 15000,
 });
 

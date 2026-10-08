@@ -37,7 +37,7 @@ function MainTabs() {
 export default function AppNavigator() {
   const { user, onboarded, restoring, restoreError } = useAuth();
   if (restoring || restoreError) return <LogoScreen />;
-  return <ReportsProvider key={user?.id || 'signed-out'} userId={user?.id}><NavigationContainer theme={theme}><Stack.Navigator screenOptions={{ headerTintColor: c.text, headerShadowVisible: false, headerTitleStyle: { fontSize: 17 }, contentStyle: { backgroundColor: c.background }, statusBarStyle: 'dark' }}>
+  return <ReportsProvider key={user?.id || 'signed-out'} userId={user?.id}><NavigationContainer theme={theme}><Stack.Navigator screenOptions={{ headerTintColor: c.text, headerShadowVisible: false, headerTitleStyle: { fontSize: 17 }, contentStyle: { backgroundColor: c.background } }}>
     {user ? <Stack.Group navigationKey={user.id}>
     <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
     <Stack.Screen name="ReportIncident" component={GroundReportScreen} options={{ title: 'Report an Incident' }} />

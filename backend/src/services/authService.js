@@ -21,7 +21,7 @@ async function register({ name, email, password, role, district = '' } = {}) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) throw new AppError('Enter a valid email address', 400, 'INVALID_EMAIL')
   if (typeof password !== 'string' || password.length < 8) throw new AppError('Password must contain at least 8 characters', 400, 'WEAK_PASSWORD')
   if (!ROLES.includes(role)) throw new AppError('Select a valid portal role', 400, 'INVALID_ROLE')
-  if (role === 'district_officer' && !String(district).trim()) throw new AppError('Select a district for the District Officer account', 400, 'DISTRICT_REQUIRED')
+  if (['district_officer', 'district_resource_officer'].includes(role) && !String(district).trim()) throw new AppError('Select a district for this officer account', 400, 'DISTRICT_REQUIRED')
   if (await User.exists({ email: normalizedEmail })) throw new AppError('An account already exists for this email', 409, 'EMAIL_ALREADY_REGISTERED')
   const user = await User.create({ name: normalizedName, email: normalizedEmail, password, role, district: String(district).trim() })
   return { user: publicUser(user), token: issueToken(user) }

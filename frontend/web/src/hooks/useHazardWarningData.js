@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   cancelWarning,
+  createHazardFromReport,
   escalateWarning,
   getHazards,
   getWarningDraft,
@@ -56,6 +57,12 @@ export default function useHazardWarningData() {
     return updated
   }, [])
 
+  const ensureReportHazard = useCallback(async (reportId) => {
+    const hazard = await createHazardFromReport(reportId)
+    setHazards((current) => [hazard, ...current.filter((item) => item.id !== hazard.id)])
+    return hazard
+  }, [])
+
   const loadDraft = useCallback((hazardId) => getWarningDraft(hazardId), [])
   const saveDraft = useCallback((hazardId, warning) => saveWarningDraft(hazardId, warning), [])
 
@@ -81,5 +88,5 @@ export default function useHazardWarningData() {
     return updated
   }, [applyWarningUpdate, refresh])
 
-  return { hazards, warnings, loading, error, refresh, updateHazard, loadDraft, saveDraft, publish, retry, escalate, cancel }
+  return { hazards, warnings, loading, error, refresh, updateHazard, ensureReportHazard, loadDraft, saveDraft, publish, retry, escalate, cancel }
 }

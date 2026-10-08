@@ -43,6 +43,7 @@ const auditEventSchema = new mongoose.Schema({
 const warningSchema = new mongoose.Schema({
   warningId: { type: String, required: true, unique: true, trim: true },
   hazardId: { type: String, required: true, index: true, trim: true, uppercase: true },
+  sourceReportId: { type: mongoose.Schema.Types.ObjectId, ref: "GroundReport", default: null, index: true },
   level: { type: String, required: true, enum: ["Low", "Medium", "High", "Very High"] },
   status: { type: String, required: true, enum: ["Published", "Cancelled"], default: "Published", index: true },
   district: { type: String, required: true, trim: true },

@@ -9,7 +9,17 @@ const reportSchema = new mongoose.Schema({
   longitude: { type: Number, required: true, min: -180, max: 180 },
   photo: { type: String, default: null, maxlength: MAX_REFERENCE_LENGTH },
   citizenId: { type: String, required: true, trim: true, maxlength: 100 },
-  status: { type: String, enum: ["PENDING"], default: "PENDING" },
+  status: {
+    type: String,
+    enum: ["PENDING", "VERIFIED", "FORWARDED_TO_DUTY_OFFICER", "REJECTED", "CLARIFICATION_REQUESTED", "WARNING_ISSUED"],
+    default: "PENDING",
+    index: true,
+  },
+  operatorNotes: { type: String, trim: true, maxlength: 1000, default: "" },
+  validatedAt: { type: Date, default: null },
+  forwardedAt: { type: Date, default: null },
+  warningId: { type: String, trim: true, default: "" },
+  warningIssuedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model("GroundReport", reportSchema);

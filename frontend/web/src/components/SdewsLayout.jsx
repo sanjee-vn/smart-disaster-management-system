@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Activity, Bell, ChevronDown, ChevronRight, CircleHelp, ClipboardList, FileText, House, Layers3, Menu, MessageSquare, Settings, Siren, Users } from 'lucide-react'
+import { Activity, Bell, ChevronDown, ChevronRight, CircleHelp, ClipboardList, FileText, House, Layers3, LogOut, Menu, MessageSquare, Settings, Siren, Users } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Brand } from './ui.jsx'
+import { clearAuthSession } from '../services/authService'
 
 const navigation = [
   { label: 'Dashboard', icon: House, to: '/' },
@@ -65,9 +66,13 @@ export default function SdewsLayout({ children, role = 'Assessment Officer', bre
     navigate(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  const signOut = () => {
+    clearAuthSession()
+    window.location.assign('/login')
+  }
 
   return <div className="app-shell">
-    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{contextualNavigation.map(({ label, icon: Icon, to }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div><button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button></div></aside>
+    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{contextualNavigation.map(({ label, icon: Icon, to }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div>{onProfile && <button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span></button>}<button className="user-card" onClick={signOut}><span className="avatar"><LogOut size={14}/></span><span><b>Sign out</b><small>{role}</small></span></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
     <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{breadcrumb || active}</b></div><div className="topbar-actions"><span className="topbar-date">Tuesday, 07 October 2026</span><button className="notification-button" aria-label="Notifications" onClick={onNotification}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">{initials}</span><span><b>{role}</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className={`content-area ${contentClassName}`.trim()}>{children}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Data stored locally for this prototype <i className="online-dot"/></span></footer></div></main>
   </div>

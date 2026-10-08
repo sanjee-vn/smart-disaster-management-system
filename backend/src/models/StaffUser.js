@@ -1,7 +1,7 @@
 ﻿const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const USER_ROLES = ["dmc_officer", "duty_officer", "district_officer"];
+const USER_ROLES = ["dmc_officer", "duty_officer", "district_officer", "district_resource_officer", "response_officer"];
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },

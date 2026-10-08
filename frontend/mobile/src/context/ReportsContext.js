@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createReportCache } from '../services/reportCache.cjs';
 import { mergeReports } from '../utils/reports.cjs';
+import { getMyReports } from '../services/reports';
 
 const ReportsContext = createContext(null);
 export function ReportsProvider({ children, userId }) {
@@ -12,19 +13,22 @@ export function ReportsProvider({ children, userId }) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const stored = await cache.load();
-      setReports(current => mergeReports(stored, current));
+      const [stored, remote] = await Promise.all([cache.load(), getMyReports()]);
+      const synchronized = mergeReports(stored, remote);
+      setReports(synchronized);
+      await Promise.all(remote.map(report => cache.save(report)));
       setStorageError('');
     } catch {
-      setStorageError('Saved reports could not be loaded from this device. You can retry; reports from this session remain available.');
+      setStorageError('Latest report statuses could not be synchronized. Check your connection and retry.');
     } finally { setLoading(false); }
   }, [cache]);
   useEffect(() => {
     let active = true;
-    cache.load().then(stored => {
-      if (active) setReports(current => mergeReports(stored, current));
+    Promise.all([cache.load(), getMyReports()]).then(async ([stored, remote]) => {
+      if (active) setReports(mergeReports(stored, remote));
+      await Promise.all(remote.map(report => cache.save(report)));
     }).catch(() => {
-      if (active) setStorageError('Saved reports could not be loaded from this device. You can retry; reports from this session remain available.');
+      if (active) setStorageError('Latest report statuses could not be synchronized. Check your connection and retry.');
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [cache]);
