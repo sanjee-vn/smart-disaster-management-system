@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import StatusBadge from '../components/StatusBadge'
 import ValidationMessage from '../components/ValidationMessage'
+import WarningWorkflowSteps from '../components/WarningWorkflowSteps'
 import useWarningReviewData from '../hooks/useWarningReviewData'
 import { updateWarning } from '../services/responseOperationsService'
 
@@ -78,6 +79,7 @@ function ConfigureWarningContent({ warningId, warning, incident }) {
     <DashboardLayout>
       <div className="content configure-warning-page">
         <button className="back-link" onClick={() => navigate(`/warnings/${warningId}/review`)}><ArrowLeft size={15} /> Warning Review</button>
+        <WarningWorkflowSteps warningId={warningId} current="configure" />
         <div className="page-heading configure-warning-heading"><div><p className="warning-eyebrow">Hazard Warning · Controlled issue workflow</p><h1>Configure Warning</h1><p className="subtitle">Review and configure the official warning before publication.</p></div><StatusBadge value={warning.status} /></div>
 
         <section className="warning-context-strip">
@@ -129,8 +131,8 @@ export default function ConfigureWarningPage() {
   const { warning, incident, loading, error, notFound, retry } = useWarningReviewData(warningId)
 
   if (loading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading warning configuration" /></div></DashboardLayout>
-  if (notFound) return <DashboardLayout><div className="content"><div className="state"><ShieldAlert size={28} /><h3>Warning not found</h3><p>No warning record exists for {warningId}.</p><button className="btn btn-primary" onClick={() => navigate('/response-operations')}>Back to Response Operations</button></div></div></DashboardLayout>
-  if (error || !warning) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={28} /><h3>Unable to configure warning</h3><p>{error || 'Warning data is unavailable.'}</p><button className="btn btn-primary" onClick={retry}><RefreshCw size={14} /> Retry</button></div></div></DashboardLayout>
+  if (notFound) return <DashboardLayout><div className="content"><div className="state"><ShieldAlert size={28} /><h3>Warning not found</h3><p>No warning record exists for {warningId}.</p><button className="btn btn-primary" onClick={() => navigate(`/warnings/${warningId}/review`)}>Back to Warning Review</button></div></div></DashboardLayout>
+  if (error || !warning) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={28} /><h3>Unable to configure warning</h3><p>{error || 'Warning data is unavailable.'}</p><button className="btn btn-primary" onClick={retry}><RefreshCw size={14} /> Retry</button><button className="btn btn-secondary" onClick={() => navigate(`/warnings/${warningId}/review`)}>Back to Warning Review</button></div></div></DashboardLayout>
 
   return <ConfigureWarningContent key={warning.warningId} warningId={warningId} warning={warning} incident={incident} />
 }

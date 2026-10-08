@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const User = require('../models/User')
+const User = require('../models/StaffUser')
 const AppError = require('../errors/AppError')
 
 const ROLES = User.USER_ROLES

@@ -31,17 +31,17 @@ const seed = async () => {
     const now = new Date();
     const warning = await Warning.findOneAndUpdate(
       { warningId: "WRN-2026-COLOMBO-FLOOD-01" },
-      { $set: { hazardType: "Flood", severity: "EMERGENCY", targetArea: "Colombo District", district: "Colombo", status: "ACTIVE", issuedBy: "Assessment Officer", issuedAt: now }, $setOnInsert: { createdAt: now } },
+      { $setOnInsert: { warningId: "WRN-2026-COLOMBO-FLOOD-01", hazardType: "Flood", severity: "EMERGENCY", targetArea: "Colombo District", district: "Colombo", status: "ACTIVE", issuedBy: "Assessment Officer", issuedAt: now, createdAt: now } },
       { upsert: true, returnDocument: "after", runValidators: true }
     );
     const incident = await Incident.findOneAndUpdate(
       { incidentId: "INC-2026-COLOMBO-FLOOD-01" },
-      { $set: { warningId: warning._id, hazardType: "Flood", severity: "EMERGENCY", district: "Colombo", affectedArea: "Colombo District", affectedPopulation: 18500, status: "ACTIVE" }, $setOnInsert: { createdAt: now } },
+      { $setOnInsert: { incidentId: "INC-2026-COLOMBO-FLOOD-01", warningId: warning._id, hazardType: "Flood", severity: "EMERGENCY", district: "Colombo", affectedArea: "Colombo District", affectedPopulation: 18500, status: "ACTIVE", createdAt: now } },
       { upsert: true, returnDocument: "after", runValidators: true }
     );
 
     for (const agency of agencies) {
-      await Agency.findOneAndUpdate({ name: agency.name }, { $set: agency }, { upsert: true, returnDocument: "after", runValidators: true });
+      await Agency.findOneAndUpdate({ name: agency.name }, { $setOnInsert: agency }, { upsert: true, returnDocument: "after", runValidators: true });
     }
     const agencyRecords = await Agency.find({ name: { $in: agencies.map(({ name }) => name) } }).lean();
     const agencyByName = new Map(agencyRecords.map((agency) => [agency.name, agency._id]));
@@ -49,7 +49,7 @@ const seed = async () => {
     for (const { agency, ...team } of teams) {
       await ResponseTeam.findOneAndUpdate(
         { name: team.name },
-        { $set: { ...team, agencyId: agencyByName.get(agency) } },
+        { $setOnInsert: { ...team, agencyId: agencyByName.get(agency) } },
         { upsert: true, returnDocument: "after", runValidators: true }
       );
     }
@@ -57,7 +57,7 @@ const seed = async () => {
     const plannedTeams = await ResponseTeam.find({ name: { $in: plannedTeamNames } }).lean();
     await ResponseAssignment.findOneAndUpdate(
       { responseId: "RSP-2026-COLOMBO-FLOOD-01" },
-      { $set: { incidentId: incident._id, teamIds: plannedTeams.map((team) => team._id), priority: "CRITICAL", destination: "Colombo District Flood Zone", instructions: "Stage teams for coordinated flood response. Do not dispatch until authorized.", status: "PLANNED", eta: new Date(now.getTime() + 90 * 60 * 1000) }, $setOnInsert: { createdAt: now } },
+      { $setOnInsert: { responseId: "RSP-2026-COLOMBO-FLOOD-01", incidentId: incident._id, teamIds: plannedTeams.map((team) => team._id), priority: "CRITICAL", destination: "Colombo District Flood Zone", instructions: "Stage teams for coordinated flood response. Do not dispatch until authorized.", status: "PLANNED", eta: new Date(now.getTime() + 90 * 60 * 1000), createdAt: now } },
       { upsert: true, returnDocument: "after", runValidators: true }
     );
 

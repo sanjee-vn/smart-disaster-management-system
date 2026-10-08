@@ -105,7 +105,13 @@ const getAssignments = async ({ incidentId }) => {
     if (!incident) throw createError("Incident not found", 404, "INCIDENT_NOT_FOUND");
     filters.incidentId = incident._id;
   }
-  return (await repository.findAssignments(filters)).map((assignment) => ({
+  const assignments = await repository.findAssignments(filters);
+  if (incidentId) {
+    const statusRank = { IN_PROGRESS: 0, DISPATCHED: 1, PLANNED: 2, COMPLETED: 3 };
+    assignments.sort((left, right) => (statusRank[left.status] ?? 99) - (statusRank[right.status] ?? 99)
+      || new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+  }
+  return assignments.map((assignment) => ({
     id: assignment._id.toString(), responseId: assignment.responseId,
     incident: assignment.incidentId ? {
       id: assignment.incidentId._id.toString(), incidentId: assignment.incidentId.incidentId,
@@ -115,6 +121,7 @@ const getAssignments = async ({ incidentId }) => {
     teams: assignment.teamIds.map(formatTeam), priority: assignment.priority || null,
     destination: assignment.destination || null, instructions: assignment.instructions || null,
     status: assignment.status, dispatchedAt: assignment.dispatchedAt || null,
+    requiredCapabilities: assignment.requiredCapabilities || [],
     eta: assignment.eta || null, createdAt: assignment.createdAt,
   }));
 };
@@ -125,7 +132,7 @@ const formatAssignment = (assignment) => ({
   status: assignment.status, priority: assignment.priority,
   destination: assignment.destination, instructions: assignment.instructions,
   teams: assignment.teamIds.map(formatTeam), dispatchedAt: assignment.dispatchedAt,
-  eta: assignment.eta,
+  requiredCapabilities: assignment.requiredCapabilities || [], eta: assignment.eta,
 });
 
 const dispatchResponseAssignment = async (payload = {}) => {
@@ -136,6 +143,8 @@ const dispatchResponseAssignment = async (payload = {}) => {
   const instructions = typeof payload.instructions === "string" ? payload.instructions.trim() : "";
   const eta = new Date(payload.eta);
   const teamIds = Array.isArray(payload.teamIds) ? payload.teamIds : [];
+  const requiredCapabilities = Array.isArray(payload.requiredCapabilities) ? payload.requiredCapabilities : [];
+  const allowedCapabilities = new Set(["RESCUE", "POLICE", "ARMED_FORCES", "FIRE_RESCUE", "MEDICAL", "SHELTER", "EVACUATION", "FOOD", "WATER", "MEDICINE"]);
 
   if (!incidentId) throw createError("Incident ID is required", 400, "INCIDENT_NOT_FOUND");
   if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(priority)) throw createError("Priority must be LOW, MEDIUM, HIGH, or CRITICAL", 400, "INVALID_PRIORITY");
@@ -145,6 +154,8 @@ const dispatchResponseAssignment = async (payload = {}) => {
   if (teamIds.length === 0) throw createError("At least one response team is required", 400, "NO_TEAMS_SELECTED");
   if (teamIds.some((id) => !mongoose.isValidObjectId(id))) throw createError("One or more response team IDs are invalid", 400, "RESPONSE_TEAM_NOT_FOUND");
   if (new Set(teamIds.map(String)).size !== teamIds.length) throw createError("Duplicate response teams are not allowed", 400, "DUPLICATE_TEAM_SELECTION");
+  if (requiredCapabilities.some((capability) => typeof capability !== "string" || !allowedCapabilities.has(capability))) throw createError("One or more response requirements are invalid", 400, "INVALID_RESPONSE_REQUIREMENT");
+  if (new Set(requiredCapabilities).size !== requiredCapabilities.length) throw createError("Duplicate response requirements are not allowed", 400, "DUPLICATE_RESPONSE_REQUIREMENT");
 
   let assignmentId;
   try {
@@ -158,6 +169,9 @@ const dispatchResponseAssignment = async (payload = {}) => {
         if (!assignment) throw createError("Response assignment not found", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
         if (assignment.incidentId.toString() !== incident._id.toString()) throw createError("Response assignment does not belong to this incident", 400, "RESPONSE_ASSIGNMENT_NOT_FOUND");
         if (assignment.status !== "PLANNED") throw createError("Response assignment has already been dispatched or is not dispatchable", 409, "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
+      } else {
+        const existingAssignment = await repository.findExistingAssignmentForDispatch(incident._id, session);
+        if (existingAssignment) throw createError("A response assignment already exists for this incident", 409, "RESPONSE_ASSIGNMENT_ALREADY_EXISTS");
       }
 
       const teams = await repository.findTeamsForDispatch(teamIds, session);
@@ -168,7 +182,7 @@ const dispatchResponseAssignment = async (payload = {}) => {
       if (deployment.modifiedCount !== teamIds.length) throw createError("One or more selected teams are no longer available", 409, "TEAM_UNAVAILABLE");
 
       const now = new Date();
-      const update = { teamIds, priority, destination, instructions, eta, status: "DISPATCHED", dispatchedAt: now };
+      const update = { teamIds, priority, destination, instructions, requiredCapabilities, eta, status: "DISPATCHED", dispatchedAt: now };
       let savedAssignment;
       if (assignment) {
         savedAssignment = await repository.updatePlannedAssignment(assignment._id, update, session);
@@ -183,7 +197,8 @@ const dispatchResponseAssignment = async (payload = {}) => {
     });
   } catch (error) {
     if (error.code && error.status) throw error;
-    throw createError(`Atomic dispatch failed. MongoDB must support transactions through a replica set. ${error.message}`, 503, "DISPATCH_TRANSACTION_FAILED");
+    if (isTransactionUnavailable(error)) throw createError("Atomic response dispatch requires MongoDB transaction support.", 503, "TRANSACTION_UNAVAILABLE");
+    throw createError("Response assignment could not be dispatched atomically.", 500, "DISPATCH_TRANSACTION_FAILED");
   }
 
   const dispatched = await repository.findAssignmentWithDetailsById(assignmentId);
@@ -191,4 +206,61 @@ const dispatchResponseAssignment = async (payload = {}) => {
   return formatAssignment(dispatched);
 };
 
-module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, getAssignments, dispatchResponseAssignment };
+const isTransactionUnavailable = (error) => {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("transaction numbers are only allowed on a replica set member or mongos")
+    || message.includes("transactions are not supported")
+    || message.includes("replica set");
+};
+
+const resolveResponse = async (incidentId) => {
+  if (!incidentId || typeof incidentId !== "string") throw createError("Incident not found", 404, "INCIDENT_NOT_FOUND");
+  try {
+    return await repository.runInTransaction(async (session) => {
+      const incident = await repository.findIncidentForDispatch(incidentId, session);
+      if (!incident) throw createError("Incident not found", 404, "INCIDENT_NOT_FOUND");
+      if (incident.status === "RESOLVED") throw createError("Incident has already been resolved", 409, "INCIDENT_ALREADY_RESOLVED");
+
+      const assignment = await repository.findCurrentAssignmentByIncident(incident._id, session)
+        || await repository.findAnyAssignmentByIncident(incident._id, session);
+      if (!assignment) throw createError("Response assignment not found", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
+      if (!["DISPATCHED", "IN_PROGRESS"].includes(assignment.status)) {
+        throw createError("Response assignment is not in a resolvable state", 409, "RESPONSE_NOT_RESOLVABLE");
+      }
+
+      const outstanding = await repository.countOutstandingDistributions(incident._id, session);
+      if (outstanding > 0) throw createError("Incident cannot be resolved while resource distributions are still en route", 409, "OUTSTANDING_DISTRIBUTIONS");
+
+      const teamIds = assignment.teamIds || [];
+      const teams = await repository.findTeamsForResolution(teamIds, session);
+      if (teams.length !== teamIds.length || teams.some((team) => !["DEPLOYED", "AVAILABLE"].includes(team.status))) {
+        throw createError("One or more assigned teams are in an incompatible state", 409, "TEAM_STATE_CONFLICT");
+      }
+      const deployedTeamIds = teams.filter((team) => team.status === "DEPLOYED").map((team) => team._id);
+      if (deployedTeamIds.length > 0) {
+        const release = await repository.releaseDeployedTeams(deployedTeamIds, session);
+        if (release.modifiedCount !== deployedTeamIds.length) throw createError("Assigned team state changed during resolution", 409, "TEAM_STATE_CONFLICT");
+      }
+
+      const completedAssignment = await repository.completeAssignment(assignment._id, session);
+      if (!completedAssignment) throw createError("Response assignment is no longer resolvable", 409, "RESPONSE_NOT_RESOLVABLE");
+      const resolvedIncident = await repository.resolveIncident(incident._id, session);
+      if (!resolvedIncident) throw createError("Incident is no longer resolvable", 409, "INCIDENT_ALREADY_RESOLVED");
+
+      return {
+        incidentId: resolvedIncident.incidentId,
+        incidentStatus: resolvedIncident.status,
+        responseId: completedAssignment.responseId,
+        responseStatus: completedAssignment.status,
+        releasedTeams: deployedTeamIds.length,
+      };
+    });
+  } catch (error) {
+    const domainCodes = ["INCIDENT_NOT_FOUND", "INCIDENT_ALREADY_RESOLVED", "RESPONSE_ASSIGNMENT_NOT_FOUND", "RESPONSE_NOT_RESOLVABLE", "OUTSTANDING_DISTRIBUTIONS", "TEAM_STATE_CONFLICT"];
+    if (error.code && domainCodes.includes(error.code)) throw error;
+    if (isTransactionUnavailable(error)) throw createError("Atomic response resolution requires MongoDB transaction support.", 503, "TRANSACTION_UNAVAILABLE");
+    throw createError("Response resolution could not be committed atomically.", 500, "RESPONSE_RESOLUTION_FAILED");
+  }
+};
+
+module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, getAssignments, dispatchResponseAssignment, resolveResponse };

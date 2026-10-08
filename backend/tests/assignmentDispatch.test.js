@@ -8,7 +8,7 @@ const assignmentObjectId = new mongoose.Types.ObjectId();
 const teamObjectIds = [new mongoose.Types.ObjectId(), new mongoose.Types.ObjectId()];
 const agencyObjectId = new mongoose.Types.ObjectId();
 const methodNames = [
-  "runInTransaction", "findIncidentForDispatch", "findAssignmentForDispatch", "findTeamsForDispatch",
+  "runInTransaction", "findIncidentForDispatch", "findAssignmentForDispatch", "findExistingAssignmentForDispatch", "findTeamsForDispatch",
   "deployAvailableTeams", "updatePlannedAssignment", "createAssignment",
   "updateIncidentResponseStatus", "findAssignmentWithDetailsById",
 ];
@@ -18,6 +18,7 @@ const validPayload = {
   incidentId: "INC-TEST-01", responseId: "RSP-TEST-01",
   teamIds: teamObjectIds.map(String), priority: "CRITICAL",
   destination: "Colombo Flood Zone", instructions: "Deploy for rescue operations.",
+  requiredCapabilities: ["RESCUE", "MEDICAL", "FOOD", "WATER"],
   eta: "2026-10-08T10:00:00.000Z",
 };
 
@@ -34,6 +35,7 @@ const reset = () => {
   };
   repository.findIncidentForDispatch = async (incidentId) => incidentId === state.incident?.incidentId ? state.incident : null;
   repository.findAssignmentForDispatch = async (responseId) => responseId === state.assignment?.responseId ? state.assignment : null;
+  repository.findExistingAssignmentForDispatch = async () => state.assignment;
   repository.findTeamsForDispatch = async (ids) => state.teams.filter((team) => ids.includes(team._id.toString()));
   repository.deployAvailableTeams = async (ids) => {
     let modifiedCount = 0;
@@ -69,6 +71,8 @@ const run = async () => {
   assert.equal(state.assignment.status, "DISPATCHED");
   assert.ok(state.teams.every((team) => team.status === "DEPLOYED"));
   assert.equal(state.incident.status, "RESPONSE_IN_PROGRESS");
+  assert.deepEqual(result.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
+  assert.deepEqual(state.assignment.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
 
   reset(); state.incident = null;
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "INCIDENT_NOT_FOUND");
@@ -89,16 +93,29 @@ const run = async () => {
   await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, priority: "URGENT" }), "INVALID_PRIORITY");
 
   reset();
+  await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, requiredCapabilities: ["FOOD", "INVALID"] }), "INVALID_RESPONSE_REQUIREMENT");
+
+  reset();
+  await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, requiredCapabilities: ["WATER", "WATER"] }), "DUPLICATE_RESPONSE_REQUIREMENT");
+
+  reset();
   await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, eta: "not-a-date" }), "INVALID_ETA");
 
   reset(); state.assignment.status = "DISPATCHED";
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
 
   reset();
+  await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, responseId: undefined }), "RESPONSE_ASSIGNMENT_ALREADY_EXISTS");
+
+  reset();
   repository.updatePlannedAssignment = async () => null;
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
   assert.ok(state.teams.every((team) => team.status === "AVAILABLE"), "Transaction failure must roll back team deployment");
   assert.equal(state.incident.status, "ACTIVE", "Transaction failure must preserve incident status");
+
+  reset();
+  repository.runInTransaction = async () => { throw new Error("Transaction numbers are only allowed on a replica set member or mongos"); };
+  await assert.rejects(() => service.dispatchResponseAssignment(validPayload), (error) => error.code === "TRANSACTION_UNAVAILABLE" && !error.message.includes("Transaction numbers"));
 
   console.log("Assignment dispatch tests passed: validation, idempotency, atomic transitions, and rollback behavior.");
 };

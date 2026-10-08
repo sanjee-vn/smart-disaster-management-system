@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAssignments, getIncident } from '../services/responseOperationsService'
+import { loadPlanningRequirements, normalizeRequirements } from '../utils/responseRequirements'
 
 export default function useIncidentResponseContext(incidentId) {
   const [context, setContext] = useState(null)
@@ -14,6 +15,7 @@ export default function useIncidentResponseContext(incidentId) {
       .then(([incident, assignments]) => {
         if (!active) return
         const assignment = assignments[0] || null
+        const persistedRequirements = normalizeRequirements(assignment?.requiredCapabilities)
         setContext({
           incidentId: incident.incidentId,
           warningId: incident.warning?.warningId ?? null,
@@ -23,6 +25,7 @@ export default function useIncidentResponseContext(incidentId) {
           severity: incident.severity,
           district: incident.district,
           responseStatus: assignment?.status ?? incident.status,
+          requiredCapabilities: persistedRequirements.length ? persistedRequirements : loadPlanningRequirements(incident.incidentId),
         })
         setError('')
       })

@@ -18,7 +18,7 @@ export default function ShelterCard({ shelter, selected, onSelect, onLogDistribu
       </div>
       <div className="card-actions">
         <button className="btn btn-secondary" onClick={(event) => { event.stopPropagation(); onSelect() }}>View Shelter</button>
-        <button className="btn btn-primary" onClick={(event) => { event.stopPropagation(); onLogDistribution() }}>Log New Distribution</button>
+        {onLogDistribution && <button className="btn btn-primary" onClick={(event) => { event.stopPropagation(); onLogDistribution() }}>Log New Distribution</button>}
       </div>
     </article>
   )

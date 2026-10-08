@@ -1,10 +1,14 @@
-require("./config/env");
+﻿require("./config/env");
 
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const connectDatabase = require("./config/database");
+const citizenAuthRoutes = require("./modules/auth/auth.routes");
+const reportRoutes = require("./modules/reports/report.routes");
+const staffAuthRoutes = require("./routes/staffAuthRoutes");
 const hazardWarningRoutes = require("./routes/hazardWarningRoutes");
+const resourceCoordinationRoutes = require("./routes/resourceCoordinationRoutes");
 const responseOperationsRoutes = require("./routes/responseOperationsRoutes");
 
 const app = express();
@@ -25,12 +29,17 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "32kb" }));
 
-app.get("/api/health", (req, res) => res.json({
+app.use("/api/auth", citizenAuthRoutes);
+app.use("/api/staff/auth", staffAuthRoutes);
+app.use("/api/reports", reportRoutes);
+
+app.get("/api/health", (_req, res) => res.json({
   success: true,
   data: { status: "ok", service: "smart-disaster-management-api" },
+  message: "Smart Disaster Management API is running",
 }));
 
-app.get("/api/ready", (req, res) => {
+app.get("/api/ready", (_req, res) => {
   const databaseReady = mongoose.connection.readyState === 1;
   return res.status(databaseReady ? 200 : 503).json({
     success: databaseReady,
@@ -39,42 +48,66 @@ app.get("/api/ready", (req, res) => {
 });
 
 app.use("/api", hazardWarningRoutes);
+app.use("/api/resource-coordination", resourceCoordinationRoutes);
 app.use("/api/response-operations", responseOperationsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: { code: "NOT_FOUND", message: "API route not found" },
+    code: "NOT_FOUND",
+    message: "API route not found",
   });
 });
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
-  const isClientError = error.statusCode || error.status;
-  const status = error.name === "ValidationError" || error.name === "CastError"
+  if (error.type === "entity.parse.failed") {
+    const message = "Request body must contain valid JSON.";
+    return res.status(400).json({ success: false, error: { code: "INVALID_JSON", message }, code: "INVALID_JSON", message });
+  }
+  if (error.type === "entity.too.large") {
+    const message = "Request body is too large.";
+    return res.status(413).json({ success: false, error: { code: "PAYLOAD_TOO_LARGE", message }, code: "PAYLOAD_TOO_LARGE", message });
+  }
+
+  const statusCode = error.name === "ValidationError" || error.name === "CastError"
     ? 400
-    : (isClientError || 500);
+    : (error.statusCode || error.status || 500);
+  const status = Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 600 ? statusCode : 500;
+  const controlled = Boolean(error.code && (error.statusCode || error.status));
+  const code = controlled ? error.code : status < 500 ? error.code || "REQUEST_ERROR" : "INTERNAL_SERVER_ERROR";
+  const message = status >= 500
+    ? "An unexpected server error occurred"
+    : error.message || "Unable to process the request.";
+
   if (status >= 500) {
     console.error("API request failed:", req.method, req.path, error.name || "Error");
     if (process.env.NODE_ENV !== "production") console.error(error.stack);
   }
-  const message = status >= 500 ? "An unexpected server error occurred" : error.message;
-  return res.status(status).json({
-    success: false,
-    error: { code: error.code || "REQUEST_FAILED", message },
-  });
+  return res.status(status).json({ success: false, error: { code, message }, code, message });
 });
 
 const startServer = async () => {
+  const citizenAuth = require("./modules/auth/auth.service");
+  citizenAuth.assertAuthConfig();
   await connectDatabase();
+  await Promise.all([
+    require("./modules/auth/auth.model").init(),
+    require("./modules/auth/auth.session").init(),
+    require("./models/StaffUser").init(),
+  ]);
   return app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 };
 
 if (require.main === module) {
   startServer().catch((error) => {
-    console.error("Unable to start server:", error.name || "Error");
+    console.error("Backend startup failed. Check JWT_SECRET, database settings, and Atlas network access.");
+    if (process.env.NODE_ENV !== "production") console.error(error.message);
     process.exit(1);
   });
 }
 
-module.exports = { app, startServer };
+module.exports = app;
+module.exports.app = app;
+module.exports.startServer = startServer;

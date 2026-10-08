@@ -29,11 +29,11 @@ api.interceptors.request.use((config) => {
 })
 
 export async function registerAccount(details) {
-  const response = await api.post('/auth/register', details)
+  const response = await api.post('/staff/auth/register', details)
   return response.data.data
 }
 
 export async function loginAccount(credentials) {
-  const response = await api.post('/auth/login', credentials)
+  const response = await api.post('/staff/auth/login', credentials)
   return response.data.data
 }

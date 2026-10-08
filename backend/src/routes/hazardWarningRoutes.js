@@ -1,13 +1,9 @@
-const express = require("express");
+﻿const express = require("express");
 const controller = require("../controllers/hazardWarningController");
-const authController = require("../controllers/authController");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
 const router = express.Router();
-router.post("/auth/register", authController.register);
-router.post("/auth/login", authController.login);
-router.get("/auth/me", requireAuth, authController.currentUser);
 router.use(requireAuth);
 router.get("/hazards", controller.listHazards);
 router.get("/hazards/:id", controller.getHazard);
