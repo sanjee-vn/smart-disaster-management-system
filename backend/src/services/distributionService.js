@@ -41,6 +41,7 @@ const toResponse = (distribution, context = {}) => ({
   quantity: distribution.quantity,
   deliveryResourceId: referenceId(distribution.deliveryResourceId),
   status: distribution.status,
+  deliveredAt: distribution.deliveredAt || null,
   eta: distribution.eta || null,
   notes: distribution.notes || "",
   createdBy: distribution.createdBy,
@@ -222,4 +223,53 @@ const getDistributions = async ({ incidentId } = {}) => {
   return (await distributionRepository.findByIncidentId(incident._id)).map((distribution) => toResponse(distribution));
 };
 
-module.exports = { createDistribution, getDistributions };
+const markDistributionDelivered = async (distributionId, { incidentId } = {}) => {
+  if (!distributionId || typeof distributionId !== "string") {
+    throw errorWithCode("DISTRIBUTION_NOT_FOUND", "Distribution was not found.", 404);
+  }
+  if (!incidentId || typeof incidentId !== "string") {
+    throw errorWithCode("INCIDENT_NOT_FOUND", "Incident was not found.", 404);
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      const incident = await responseOperationsRepository.findIncidentForDispatch(incidentId, session);
+      if (!incident) throw errorWithCode("INCIDENT_NOT_FOUND", "Incident was not found.", 404);
+
+      const distribution = await distributionRepository.findForCompletion(distributionId, incident._id, session);
+      if (!distribution) throw errorWithCode("DISTRIBUTION_NOT_FOUND", "Distribution was not found for this incident.", 404);
+      if (distribution.status === "DELIVERED") {
+        throw errorWithCode("DISTRIBUTION_ALREADY_DELIVERED", "Distribution has already been marked as delivered.", 409);
+      }
+      if (distribution.status !== "EN_ROUTE") {
+        throw errorWithCode("INVALID_DISTRIBUTION_TRANSITION", `Distribution cannot transition from ${distribution.status} to DELIVERED.`, 409);
+      }
+
+      const deliveredAt = new Date();
+      const delivered = await distributionRepository.markDelivered(distribution._id, deliveredAt, session);
+      if (!delivered) throw errorWithCode("DISTRIBUTION_STATUS_CONFLICT", "Distribution status changed before delivery completion.", 409);
+
+      const released = await deliveryResourceRepository.releaseInUse(distribution.deliveryResourceId, session);
+      if (!released) throw errorWithCode("DELIVERY_RESOURCE_CONFLICT", "Associated delivery resource is not currently in use.", 409);
+
+      const shelterUpdated = await shelterRepository.markIncomingResourceDelivered(distribution.shelterId, distribution.distributionId, session);
+      if (!shelterUpdated) throw errorWithCode("SHELTER_RESOURCE_NOT_FOUND", "Shelter incoming-resource record was not found for this distribution.", 409);
+    });
+    const completed = await distributionRepository.findByDistributionId(distributionId);
+    if (!completed) throw errorWithCode("DISTRIBUTION_NOT_FOUND", "Completed distribution could not be loaded.", 404);
+    return toResponse(completed);
+  } catch (error) {
+    const domainCodes = ["INCIDENT_NOT_FOUND", "DISTRIBUTION_NOT_FOUND", "DISTRIBUTION_ALREADY_DELIVERED", "INVALID_DISTRIBUTION_TRANSITION", "DISTRIBUTION_STATUS_CONFLICT", "DELIVERY_RESOURCE_CONFLICT", "SHELTER_RESOURCE_NOT_FOUND"];
+    if (error.code && domainCodes.includes(error.code)) throw error;
+    if (isTransactionUnavailable(error)) {
+      throw errorWithCode("TRANSACTION_UNAVAILABLE", "Atomic delivery completion requires MongoDB transaction support.", 503);
+    }
+    throw errorWithCode("DELIVERY_COMPLETION_FAILED", "Delivery completion could not be committed atomically.", 500);
+  } finally {
+    if (session) await session.endSession();
+  }
+};
+
+module.exports = { createDistribution, getDistributions, markDistributionDelivered };

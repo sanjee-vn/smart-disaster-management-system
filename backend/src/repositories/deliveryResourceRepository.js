@@ -8,5 +8,10 @@ const reserveAvailable = (id, session) => DeliveryResource.findOneAndUpdate(
   { $set: { status: "IN_USE" } },
   { returnDocument: "after", session }
 );
+const releaseInUse = (id, session) => DeliveryResource.findOneAndUpdate(
+  { _id: id, status: "IN_USE" },
+  { $set: { status: "AVAILABLE" } },
+  { returnDocument: "after", session }
+);
 
-module.exports = { findAll, findById, findByIdInSession, reserveAvailable };
+module.exports = { findAll, findById, findByIdInSession, reserveAvailable, releaseInUse };

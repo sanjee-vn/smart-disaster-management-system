@@ -11,11 +11,12 @@ import StatusBadge from '../components/StatusBadge'
 import ValidationMessage from '../components/ValidationMessage'
 import { incidentSituationDemo } from '../data/incidentPlanningDemoContent'
 import useIncidentPlanningData from '../hooks/useIncidentPlanningData'
+import { loadPlanningRequirements, savePlanningRequirements } from '../utils/responseRequirements'
 
 function IncidentPlanningForm({ incident, assignment, assignmentError, restoredDraft, onRetry }) {
   const navigate = useNavigate()
   const [priority, setPriority] = useState(restoredDraft?.priority || '')
-  const [requiredCapabilities, setRequiredCapabilities] = useState(restoredDraft?.requiredCapabilities || [])
+  const [requiredCapabilities, setRequiredCapabilities] = useState(restoredDraft?.requiredCapabilities || loadPlanningRequirements(incident.incidentId))
   const [operationalNotes, setOperationalNotes] = useState(restoredDraft?.operationalNotes || '')
   const [errors, setErrors] = useState({})
   const warning = incident.warning
@@ -35,6 +36,7 @@ function IncidentPlanningForm({ incident, assignment, assignmentError, restoredD
       requiredCapabilities,
       operationalNotes: operationalNotes.trim(),
     }
+    savePlanningRequirements(incident.incidentId, requiredCapabilities)
     navigate(`/response-operations/incidents/${incident.incidentId}/teams`, { state: { planningDraft } })
   }
 

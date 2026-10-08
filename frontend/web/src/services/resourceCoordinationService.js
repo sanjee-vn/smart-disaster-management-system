@@ -39,3 +39,8 @@ export const getDistributions = async (incidentId) => {
   const response = await api.get('/resource-coordination/distributions', { params: { incidentId } })
   return response.data.data
 }
+
+export const markDistributionDelivered = async (distributionId, incidentId) => {
+  const response = await api.patch(`/resource-coordination/distributions/${distributionId}/deliver`, { incidentId })
+  return response.data.data
+}

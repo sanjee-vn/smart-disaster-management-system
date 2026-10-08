@@ -11,5 +11,6 @@ router.get("/inventory/:id", controller.getInventoryItem);
 router.get("/delivery-resources/:id", controller.getDeliveryResource);
 router.get("/shelters/:id", controller.getShelter);
 router.post("/distributions", distributionController.createDistribution);
+router.patch("/distributions/:distributionId/deliver", distributionController.markDelivered);
 
 module.exports = router;

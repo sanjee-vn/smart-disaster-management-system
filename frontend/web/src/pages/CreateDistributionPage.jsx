@@ -4,10 +4,12 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import DeliveryResourceSelector from '../components/DeliveryResourceSelector'
 import InventorySelector from '../components/InventorySelector'
+import ResourceRequirementContext from '../components/ResourceRequirementContext'
 import ValidationMessage from '../components/ValidationMessage'
 import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getDeliveryResources, getInventory, getShelterById } from '../services/resourceCoordinationService'
 import { getResponseOperationsPaths, getStandaloneResponseContext } from '../utils/responseOperationsRoutes'
+import { getResourceRequirements, requirementLabels } from '../utils/responseRequirements'
 
 export default function CreateDistributionPage() {
   const { incidentId, shelterId } = useParams()
@@ -40,6 +42,7 @@ export default function CreateDistributionPage() {
 
   const selectedInventory = useMemo(() => inventory.find((item) => item.id === inventoryItemId), [inventory, inventoryItemId])
   const selectedDelivery = useMemo(() => deliveryResources.find((resource) => resource.id === deliveryResourceId), [deliveryResources, deliveryResourceId])
+  const recommendedCategories = getResourceRequirements(responseContext.requiredCapabilities).map((code) => requirementLabels[code])
 
   useEffect(() => {
     let active = true
@@ -134,8 +137,10 @@ export default function CreateDistributionPage() {
           <div className="context-requests"><span>Pending relief requests</span><strong>{shelter.pendingRequests.length ? shelter.pendingRequests.map((request) => `${request.item} · ${request.quantity} ${request.unit}`).join('  |  ') : 'No pending requests'}</strong></div>
         </section>
 
+        {incidentId && <ResourceRequirementContext requirements={responseContext.requiredCapabilities || []} compact />}
+
         <form onSubmit={continueToReview} noValidate>
-          <InventorySelector category={category} inventory={inventory} selectedItemName={itemName} selectedInventoryId={inventoryItemId} loading={inventoryLoading} errors={errors} onCategoryChange={handleCategoryChange} onItemChange={handleItemChange} onInventoryChange={(id) => { setInventoryItemId(id); setQuantity(''); setErrors((current) => ({ ...current, inventory: '', quantity: '' })) }} />
+          <InventorySelector category={category} inventory={inventory} selectedItemName={itemName} selectedInventoryId={inventoryItemId} recommendedCategories={recommendedCategories} loading={inventoryLoading} errors={errors} onCategoryChange={handleCategoryChange} onItemChange={handleItemChange} onInventoryChange={(id) => { setInventoryItemId(id); setQuantity(''); setErrors((current) => ({ ...current, inventory: '', quantity: '' })) }} />
           {inventoryError && <div className="api-inline-error"><AlertTriangle size={15} />{inventoryError}</div>}
 
           <section className="form-card">

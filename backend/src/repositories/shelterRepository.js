@@ -8,5 +8,13 @@ const addIncomingResource = (id, resource, session) => Shelter.findByIdAndUpdate
   { $push: { incomingResources: resource } },
   { returnDocument: "after", session }
 );
+const markIncomingResourceDelivered = async (id, distributionId, session) => {
+  const result = await Shelter.updateOne(
+    { _id: id, incomingResources: { $elemMatch: { distributionId } } },
+    { $set: { "incomingResources.$[resource].status": "Delivered" } },
+    { arrayFilters: [{ "resource.distributionId": distributionId }], session }
+  );
+  return result.matchedCount > 0;
+};
 
-module.exports = { findAll, findById, findByIdInSession, addIncomingResource };
+module.exports = { findAll, findById, findByIdInSession, addIncomingResource, markIncomingResourceDelivered };
