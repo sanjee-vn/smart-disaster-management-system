@@ -35,17 +35,23 @@ app.use((req, res) => {
 
 app.use((error, req, res, next) => {
   if (error.type === "entity.parse.failed") {
-    return res.status(400).json({ success: false, message: "Request body must contain valid JSON." });
+    const message = "Request body must contain valid JSON.";
+    return res.status(400).json({ success: false, error: { code: "INVALID_JSON", message }, code: "INVALID_JSON", message });
   }
   if (error.type === "entity.too.large") {
-    return res.status(413).json({ success: false, message: "Request body is too large." });
+    const message = "Request body is too large.";
+    return res.status(413).json({ success: false, error: { code: "PAYLOAD_TOO_LARGE", message }, code: "PAYLOAD_TOO_LARGE", message });
   }
-  const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 500
+  const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 600
     ? error.status : 500;
+  const controlled = Boolean(error.code && error.status);
+  const code = controlled ? error.code : status < 500 ? error.code || "REQUEST_ERROR" : "INTERNAL_SERVER_ERROR";
+  const message = controlled ? error.message : status < 500 ? error.message || "Unable to process the request." : "Unable to process the request.";
   return res.status(status).json({
     success: false,
-    code: status < 500 ? error.code || "REQUEST_ERROR" : "INTERNAL_SERVER_ERROR",
-    message: status < 500 ? error.message || "Unable to process the request." : "Unable to process the request.",
+    error: { code, message },
+    code,
+    message,
   });
 });
 

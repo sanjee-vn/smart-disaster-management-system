@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import IncomingResourcesTable from '../components/IncomingResourcesTable'
 import MapPlaceholder from '../components/MapPlaceholder'
@@ -9,15 +9,9 @@ import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getShelterById, getShelters } from '../services/resourceCoordinationService'
 import { formatEnumLabel, getResponseOperationsPaths, getStandaloneResponseContext } from '../utils/responseOperationsRoutes'
 
-const activeIncident = {
-  name: 'Colombo District Flood Response',
-  district: 'Colombo',
-  hazardType: 'Flood',
-  status: 'Active — Level 2',
-}
-
 export default function ResourceCoordinationDashboard() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const { incidentId } = useParams()
   const { context: incidentContext, loading: contextLoading, error: contextError, reload: reloadContext } = useIncidentResponseContext(incidentId)
   const responseContext = incidentContext || getStandaloneResponseContext()
@@ -34,7 +28,7 @@ export default function ResourceCoordinationDashboard() {
     try {
       const data = await getShelters(incidentId)
       setShelters(data)
-      setSelectedShelter(data[0] || null)
+      setSelectedShelter(data.find((shelter) => shelter.id === state?.selectedShelterId) || data[0] || null)
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not load shelter data. Check that the API and MongoDB are running.')
     } finally {
@@ -48,7 +42,7 @@ export default function ResourceCoordinationDashboard() {
       .then((data) => {
         if (!active) return
         setShelters(data)
-        setSelectedShelter(data[0] || null)
+        setSelectedShelter(data.find((shelter) => shelter.id === state?.selectedShelterId) || data[0] || null)
       })
       .catch((requestError) => {
         if (active) setError(requestError.response?.data?.message || 'Could not load shelter data. Check that the API and MongoDB are running.')
@@ -57,7 +51,7 @@ export default function ResourceCoordinationDashboard() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [incidentId])
+  }, [incidentId, state?.selectedShelterId])
 
   const selectShelter = async (id) => {
     setDetailLoading(true)
@@ -80,13 +74,13 @@ export default function ResourceCoordinationDashboard() {
         <div className="page-heading"><div><h1>Resource Coordination</h1><p className="subtitle">Monitor shelter demand and coordinate incoming relief supplies.</p></div><span className="updated">Operational dashboard</span></div>
 
         <section className={`incident-banner ${incidentId ? 'incident-aware' : ''}`}>
-          <div><div className="incident-kicker"><span className="pulse" /> Active incident</div><h2>{incidentId ? responseContext.incidentName : activeIncident.name}</h2></div>
+          <div><div className="incident-kicker"><span className="pulse" /> {incidentId ? 'Active incident' : 'Standalone resource view'}</div><h2>{incidentId ? responseContext.incidentName : 'Resource Coordination'}</h2></div>
           <div className="incident-meta">
             {incidentId && <><div className="meta-item"><span>Incident ID</span><strong>{responseContext.incidentId}</strong></div><div className="meta-item"><span>Warning ID</span><strong>{responseContext.warningId || 'Not linked'}</strong></div><div className="meta-item"><span>Response ID</span><strong>{responseContext.responseId || 'Not assigned'}</strong></div></>}
-            <div className="meta-item"><span>District</span><strong>{incidentId ? responseContext.district : activeIncident.district}</strong></div>
-            <div className="meta-item"><span>Hazard type</span><strong>{incidentId ? responseContext.hazardType : activeIncident.hazardType}</strong></div>
+            <div className="meta-item"><span>District</span><strong>{incidentId ? responseContext.district : 'Not incident-scoped'}</strong></div>
+            <div className="meta-item"><span>Hazard type</span><strong>{incidentId ? responseContext.hazardType : 'Not available'}</strong></div>
             {incidentId && <div className="meta-item"><span>Severity</span><strong>{formatEnumLabel(responseContext.severity)}</strong></div>}
-            <div className="meta-item"><span>{incidentId ? 'Response status' : 'Incident status'}</span><strong className="status-live">{incidentId ? formatEnumLabel(responseContext.responseStatus) : activeIncident.status}</strong></div>
+            <div className="meta-item"><span>{incidentId ? 'Response status' : 'Mode'}</span><strong className="status-live">{incidentId ? formatEnumLabel(responseContext.responseStatus) : 'Unscoped shelter view'}</strong></div>
           </div>
         </section>
 

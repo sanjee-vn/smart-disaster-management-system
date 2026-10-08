@@ -31,7 +31,7 @@ const seed = async () => {
   try {
     await connectDatabase();
     for (const owner of ownerSeeds) {
-      await ResourceOwner.findOneAndUpdate({ name: owner.name }, owner, { upsert: true, returnDocument: "after", runValidators: true });
+      await ResourceOwner.findOneAndUpdate({ name: owner.name }, { $setOnInsert: owner }, { upsert: true, returnDocument: "after", runValidators: true });
     }
     const owners = await ResourceOwner.find({ name: { $in: ownerSeeds.map(({ name }) => name) } }).lean();
     const ownerByName = new Map(owners.map((owner) => [owner.name, owner._id]));
@@ -40,12 +40,12 @@ const seed = async () => {
       const ownerId = ownerByName.get(ownerName);
       await InventoryItem.findOneAndUpdate(
         { category: item.category, itemName: item.itemName, ownerId },
-        { ...item, ownerId },
+        { $setOnInsert: { ...item, ownerId } },
         { upsert: true, returnDocument: "after", runValidators: true }
       );
     }
     for (const resource of deliverySeeds) {
-      await DeliveryResource.findOneAndUpdate({ name: resource.name }, resource, { upsert: true, returnDocument: "after", runValidators: true });
+      await DeliveryResource.findOneAndUpdate({ name: resource.name }, { $setOnInsert: resource }, { upsert: true, returnDocument: "after", runValidators: true });
     }
     console.log(`Seeded Component 03: ${ownerSeeds.length} owners, ${inventorySeeds.length} inventory records, ${deliverySeeds.length} delivery resources`);
   } finally {

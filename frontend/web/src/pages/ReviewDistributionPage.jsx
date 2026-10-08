@@ -7,12 +7,13 @@ import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
 import { getDeliveryResourceById, getInventoryItemById, getShelterById } from '../services/resourceCoordinationService'
 import { isDistributionValid, validateDistributionDraft } from '../utils/distributionValidation'
 import { formatEnumLabel, getResponseOperationsPaths } from '../utils/responseOperationsRoutes'
+import { saveProcessingDraft } from '../utils/distributionDraftStorage'
 
 export default function ReviewDistributionPage() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const { incidentId: routeIncidentId } = useParams()
-  const draft = state?.draft
+  const draft = state?.draft && (!routeIncidentId || state.draft.incidentId === routeIncidentId) ? state.draft : null
   const incidentId = routeIncidentId || draft?.incidentId
   const paths = getResponseOperationsPaths(incidentId)
   const { context: responseContext, loading: contextLoading, error: contextError } = useIncidentResponseContext(draft ? incidentId : null)
@@ -78,7 +79,8 @@ export default function ReviewDistributionPage() {
       applyLatest(latest)
       const latestValidation = validateDistributionDraft(draft, latest.inventory, latest.deliveryResource)
       if (!isDistributionValid(latestValidation)) return
-      const validatedDraft = { ...draft, availableQuantity: latest.inventory.availableQuantity, unit: latest.inventory.unit, deliveryResourceStatus: latest.deliveryResource.status }
+      const validatedDraft = { ...draft, requestId: draft.requestId || crypto.randomUUID(), availableQuantity: latest.inventory.availableQuantity, unit: latest.inventory.unit, deliveryResourceStatus: latest.deliveryResource.status }
+      saveProcessingDraft(validatedDraft)
       navigate(paths.processing, { state: { draft: validatedDraft } })
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not complete the latest validation.')
