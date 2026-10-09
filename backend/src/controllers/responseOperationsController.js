@@ -27,8 +27,11 @@ const listAssignments = async (req, res, next) => {
 const dispatchAssignment = async (req, res, next) => {
   try { res.json({ success: true, data: await service.dispatchResponseAssignment(req.body) }); } catch (error) { next(error); }
 };
+const acceptAssignment = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.acceptResponseAssignmentByStaff(req.params.responseId, { id: req.user?.id, name: req.user?.name }) }); } catch (error) { next(error); }
+};
 const resolveResponse = async (req, res, next) => {
   try { res.json({ success: true, data: await service.resolveResponse(req.params.incidentId) }); } catch (error) { next(error); }
 };
 
-module.exports = { getWarning, updateWarning, listIncidents, getIncident, listAgencies, listTeams, markTeamAvailable, listAssignments, dispatchAssignment, resolveResponse };
+module.exports = { getWarning, updateWarning, listIncidents, getIncident, listAgencies, listTeams, markTeamAvailable, listAssignments, dispatchAssignment, acceptAssignment, resolveResponse };

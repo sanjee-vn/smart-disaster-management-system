@@ -33,7 +33,9 @@ export default function DistrictResourceDashboard({ requestsOnly = false }) {
     setRequestsLoading(false)
   }, [])
 
-  useEffect(() => { queueMicrotask(loadRequests) }, [loadRequests])
+  useEffect(() => {
+    if (requestsOnly) queueMicrotask(loadRequests)
+  }, [loadRequests, requestsOnly])
 
   const review = async (request, decision) => {
     let rejectionReason
@@ -72,8 +74,8 @@ export default function DistrictResourceDashboard({ requestsOnly = false }) {
   const pending = requests.filter((request) => request.status === 'PENDING')
   const orderedRequests = [...requests].sort((left, right) => Number(right.status === 'PENDING') - Number(left.status === 'PENDING'))
   const refresh = () => {
-    loadRequests()
-    if (!requestsOnly) dashboard.retry()
+    if (requestsOnly) loadRequests()
+    else dashboard.retry()
   }
 
   return <DashboardLayout breadcrumb={requestsOnly ? 'Resource Operations / Incoming Requests' : 'District Resource Coordination'}>
@@ -85,7 +87,7 @@ export default function DistrictResourceDashboard({ requestsOnly = false }) {
       </div><button className="btn btn-secondary" onClick={refresh}><RefreshCw size={14}/> Refresh</button></header>
       {error && <div className="response-partial-warning"><AlertTriangle size={17}/>{error}</div>}
       {notice && <div className="request-action-message success" role="status">{notice}</div>}
-      <section className="response-panel">
+      {requestsOnly && <><section className="response-panel">
         <div className="response-panel-heading"><div><h2>Incoming Operational Requests</h2><p>Approve or reject each request. Team assignments do not reserve a team or change its AVAILABLE status.</p></div><span>{pending.length} pending</span></div>
         {requestsLoading ? <div className="response-inline-state">Loading operational requests…</div> : requests.length === 0 ? <div className="response-inline-state">{error ? 'Operational requests are currently unavailable. Use Refresh to try again.' : 'No operational requests received.'}</div> : <div className="table-wrap"><table className="response-table">
           <thead><tr><th>Incident</th><th>Capability</th><th>Personnel</th><th>Location</th><th>Required</th><th>Priority</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
@@ -112,7 +114,7 @@ export default function DistrictResourceDashboard({ requestsOnly = false }) {
       <section className="response-panel">
         <div className="response-panel-heading"><div><h2>Response Teams</h2><p>Teams remain AVAILABLE and can be assigned to multiple incidents at the same time.</p></div><span>{teams.length} teams</span></div>
         {requestsLoading ? <div className="response-inline-state">Loading response teams…</div> : teams.length === 0 ? <div className="response-inline-state">No response teams are registered.</div> : <div className="table-wrap"><table className="response-table"><thead><tr><th>Team</th><th>Agency</th><th>Capability</th><th>Location</th><th>Capacity</th><th>Status</th></tr></thead><tbody>{teams.map((team) => <tr key={team.id}><td><strong>{team.name}</strong></td><td>{team.agency?.name || 'Agency unavailable'}</td><td>{team.type}</td><td>{team.currentLocation || 'Location unavailable'}</td><td>{team.capacity ?? 'Not available'}</td><td><StatusBadge value="AVAILABLE"/></td></tr>)}</tbody></table></div>}
-      </section>
+      </section></>}
       {!requestsOnly && <>{dashboard.loading && <div className="response-inline-state">Loading incidents, shelters, inventory, delivery resources and distributions…</div>}<ResourceAllocationDashboardContent incidents={dashboard.incidents} assignments={dashboard.assignments} shelters={dashboard.shelters} distributions={dashboard.distributions} inventory={dashboard.inventory} deliveryResources={dashboard.deliveryResources} errors={dashboard.errors}/><button className="btn continue-btn" onClick={() => navigate('/response-operations')}>View Response Operations</button></>}
     </div>
   </DashboardLayout>

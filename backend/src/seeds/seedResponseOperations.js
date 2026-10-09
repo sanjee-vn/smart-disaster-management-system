@@ -62,7 +62,10 @@ const seed = async () => {
     const plannedTeams = await ResponseTeam.find({ name: { $in: plannedTeamNames } }).lean();
     await ResponseAssignment.findOneAndUpdate(
       { responseId: "RSP-2026-COLOMBO-FLOOD-01" },
-      { $setOnInsert: { responseId: "RSP-2026-COLOMBO-FLOOD-01", incidentId: incident._id, teamIds: plannedTeams.map((team) => team._id), priority: "CRITICAL", destination: "Colombo District Flood Zone", instructions: "Stage teams for coordinated flood response. Do not dispatch until authorized.", status: "PLANNED", eta: new Date(now.getTime() + 90 * 60 * 1000), createdAt: now } },
+      {
+        $setOnInsert: { responseId: "RSP-2026-COLOMBO-FLOOD-01", incidentId: incident._id, teamIds: plannedTeams.map((team) => team._id), priority: "CRITICAL", destination: "Colombo District Flood Zone", instructions: "Stage teams for coordinated flood response. Do not dispatch until authorized.", status: "PLANNED", eta: new Date(now.getTime() + 90 * 60 * 1000), createdAt: now },
+        $addToSet: { requiredCapabilities: { $each: ["SHELTER", "EVACUATION", "FOOD", "WATER", "MEDICINE"] } },
+      },
       { upsert: true, returnDocument: "after", runValidators: true }
     );
 

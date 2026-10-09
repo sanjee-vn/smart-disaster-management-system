@@ -16,3 +16,12 @@ export async function loadOperationalUpdates() {
 export async function deliverOperationalRequest(requestId) {
   return api.post(`/response-operations/operational-requests/${encodeURIComponent(requestId)}/deliver`).then(unwrap);
 }
+export async function acceptDistribution(distributionId) {
+  return api.patch(`/resource-coordination/distributions/${encodeURIComponent(distributionId)}/accept`).then(unwrap);
+}
+export async function acceptResponseAssignment(responseId) {
+  return api.patch(`/response-operations/assignments/${encodeURIComponent(responseId)}/accept`).then(unwrap);
+}
+export async function deliverDistribution(distributionId, incidentId) {
+  return api.patch(`/resource-coordination/distributions/${encodeURIComponent(distributionId)}/deliver`, { incidentId }).then(unwrap);
+}

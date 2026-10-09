@@ -10,6 +10,11 @@ const findByRequestId = (requestId) => Distribution.findOne({ requestId })
   .lean();
 const create = async (data, session) => (await Distribution.create([data], { session }))[0];
 const findForCompletion = (distributionId, incidentId, session) => Distribution.findOne({ distributionId, incidentId }).session(session);
+const acceptForDelivery = (id, acceptedAt, acceptedBy, session) => Distribution.findOneAndUpdate(
+  { _id: id, status: "PENDING" },
+  { $set: { status: "EN_ROUTE", acceptedAt, acceptedBy } },
+  { returnDocument: "after", session }
+);
 const markDelivered = (id, deliveredAt, session) => Distribution.findOneAndUpdate(
   { _id: id, status: "EN_ROUTE" },
   { $set: { status: "DELIVERED", deliveredAt } },
@@ -33,4 +38,4 @@ const findByIncidentId = (incidentId) => Distribution.find({ incidentId })
   .sort({ createdAt: -1 })
   .lean();
 
-module.exports = { findByRequestId, create, findForCompletion, markDelivered, findByDistributionId, findByIncidentId };
+module.exports = { findByRequestId, create, findForCompletion, acceptForDelivery, markDelivered, findByDistributionId, findByIncidentId };

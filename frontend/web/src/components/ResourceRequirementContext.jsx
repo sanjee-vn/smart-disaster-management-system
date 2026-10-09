@@ -6,8 +6,10 @@ export default function ResourceRequirementContext({ requirements = [], distribu
     if (!selected.has(code)) return 'Not requested'
     const matching = distributions.filter((distribution) => distribution.item?.category?.toUpperCase() === code)
     if (matching.length === 0) return 'Required · Not allocated'
+    const awaiting = matching.filter((distribution) => distribution.status === 'PENDING').length
     const enRoute = matching.filter((distribution) => distribution.status === 'EN_ROUTE').length
     const delivered = matching.filter((distribution) => distribution.status === 'DELIVERED').length
+    if (awaiting) return `${awaiting} pending staff acceptance${enRoute ? ` · ${enRoute} en route` : ''}${delivered ? ` · ${delivered} delivered` : ''}`
     if (enRoute && delivered) return `${enRoute} en route · ${delivered} delivered`
     if (enRoute) return `${enRoute} allocation${enRoute === 1 ? '' : 's'} en route`
     if (delivered) return `${delivered} delivery record${delivered === 1 ? '' : 's'}`

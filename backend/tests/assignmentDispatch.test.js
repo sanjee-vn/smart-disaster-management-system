@@ -10,7 +10,7 @@ const agencyObjectId = new mongoose.Types.ObjectId();
 const methodNames = [
   "runInTransaction", "findIncidentForDispatch", "findAssignmentForDispatch", "findExistingAssignmentForDispatch", "findTeamsForDispatch",
   "updatePlannedAssignment", "createAssignment",
-  "updateIncidentResponseStatus", "findAssignmentWithDetailsById",
+  "updateIncidentResponseStatus", "findAssignmentWithDetailsById", "acceptAssignmentByStaff", "findAssignments",
 ];
 const originals = Object.fromEntries(methodNames.map((name) => [name, repository[name]]));
 
@@ -38,7 +38,7 @@ const reset = () => {
   repository.findExistingAssignmentForDispatch = async () => state.assignment;
   repository.findTeamsForDispatch = async (ids) => state.teams.filter((team) => ids.includes(team._id.toString()));
   repository.updatePlannedAssignment = async (_id, update) => {
-    if (state.assignment.status !== "PLANNED") return null;
+    if (!["PLANNED", "DISPATCHED", "IN_PROGRESS"].includes(state.assignment.status)) return null;
     state.assignment = { ...state.assignment, ...update };
     return state.assignment;
   };
@@ -51,6 +51,18 @@ const reset = () => {
       ...team, agencyId: { _id: agencyObjectId, name: "Test Agency", type: "DMC" },
     })),
   });
+  repository.acceptAssignmentByStaff = async (responseId, acceptedAt, acceptedBy) => {
+    if (responseId !== state.assignment.responseId || state.assignment.staffStatus === "DISPATCHED") return null;
+    state.assignment = { ...state.assignment, staffStatus: "DISPATCHED", staffAcceptedAt: acceptedAt, staffAcceptedBy: acceptedBy };
+    return state.assignment;
+  };
+  repository.findAssignments = async ({ responseId }) => responseId === state.assignment.responseId ? [{
+    ...state.assignment,
+    incidentId: { ...state.incident },
+    teamIds: state.teams.filter((team) => state.assignment.teamIds.map(String).includes(team._id.toString())).map((team) => ({
+      ...team, agencyId: { _id: agencyObjectId, name: "Test Agency", type: "DMC" },
+    })),
+  }] : [];
 };
 
 const expectCode = async (operation, code) => assert.rejects(operation, (error) => error.code === code);
@@ -61,10 +73,15 @@ const run = async () => {
   assert.equal(result.status, "DISPATCHED");
   assert.equal(result.responseId, "RSP-TEST-01");
   assert.equal(state.assignment.status, "DISPATCHED");
+  assert.equal(result.staffStatus, "PENDING");
   assert.ok(state.teams.every((team) => team.status === "AVAILABLE"));
   assert.equal(state.incident.status, "RESPONSE_IN_PROGRESS");
   assert.deepEqual(result.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
   assert.deepEqual(state.assignment.requiredCapabilities, ["RESCUE", "MEDICAL", "FOOD", "WATER"]);
+  const accepted = await service.acceptResponseAssignmentByStaff(result.responseId, { name: "Mobile Staff" });
+  assert.equal(accepted.staffStatus, "DISPATCHED");
+  assert.equal(state.assignment.staffAcceptedBy, "Mobile Staff");
+  await expectCode(() => service.acceptResponseAssignmentByStaff(result.responseId, { name: "Mobile Staff" }), "RESPONSE_ASSIGNMENT_ALREADY_ACCEPTED");
 
   reset(); state.incident = null;
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "INCIDENT_NOT_FOUND");
@@ -95,7 +112,12 @@ const run = async () => {
   reset();
   await expectCode(() => service.dispatchResponseAssignment({ ...validPayload, eta: "not-a-date" }), "INVALID_ETA");
 
-  reset(); state.assignment.status = "DISPATCHED";
+  reset(); state.assignment.status = "DISPATCHED"; state.assignment.staffStatus = "DISPATCHED";
+  const redispatched = await service.dispatchResponseAssignment(validPayload);
+  assert.equal(redispatched.status, "DISPATCHED");
+  assert.equal(redispatched.staffStatus, "PENDING", "re-dispatch must create a fresh Staff Mobile acceptance task");
+
+  reset(); state.assignment.status = "COMPLETED";
   await expectCode(() => service.dispatchResponseAssignment(validPayload), "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
 
   reset();

@@ -17,6 +17,7 @@ router.get("/teams", controller.listTeams);
 router.patch("/teams/:teamId/availability", requireRole("district_resource_officer"), controller.markTeamAvailable);
 router.get("/assignments", controller.listAssignments);
 router.post("/assignments/dispatch", requireRole("duty_officer", "response_officer"), controller.dispatchAssignment);
+router.patch("/assignments/:responseId/accept", requireRole("staff_officer"), controller.acceptAssignment);
 router.get("/operational-requests", requestController.list);
 router.post("/operational-requests", requireRole("response_officer"), requestController.create);
 router.patch("/operational-requests/:requestId/review", requireRole("duty_officer", "district_resource_officer"), requestController.review);

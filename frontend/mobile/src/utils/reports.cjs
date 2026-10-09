@@ -15,6 +15,11 @@ const STATUSES = {
   FORWARDED_TO_DUTY_OFFICER: { label: 'Verified and forwarded', color: '#266DA4', background: '#E7F1FB' },
   WARNING_ISSUED: { label: 'Warning issued', color: '#B04444', background: '#FCEAEA' },
   RESPONSE_INITIATED: { label: 'Response initiated', color: '#266DA4', background: '#E7F1FB' },
+  APPROVED: { label: 'Approved', color: '#266DA4', background: '#E7F1FB' },
+  DISPATCHED: { label: 'Dispatched', color: '#266DA4', background: '#E7F1FB' },
+  EN_ROUTE: { label: 'En route', color: '#8E651B', background: '#FFF3DB' },
+  DELIVERED: { label: 'Delivered', color: '#1C7855', background: '#E4F4EB' },
+  COMPLETED: { label: 'Completed', color: '#1C7855', background: '#E4F4EB' },
   RESOLVED: { label: 'Resolved', color: '#1C7855', background: '#E4F4EB' },
 };
 function statusInfo(status) {

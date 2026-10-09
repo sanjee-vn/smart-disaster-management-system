@@ -43,10 +43,11 @@ export default function CreateDistributionPage() {
   const selectedInventory = useMemo(() => inventory.find((item) => item.id === inventoryItemId), [inventory, inventoryItemId])
   const selectedDelivery = useMemo(() => deliveryResources.find((resource) => resource.id === deliveryResourceId), [deliveryResources, deliveryResourceId])
   const recommendedCategories = getResourceRequirements(responseContext.requiredCapabilities).map((code) => requirementLabels[code])
+  const hasValidContext = responseContext.incidentStatus === 'ACTIVE' || responseContext.incidentStatus === 'RESPONSE_IN_PROGRESS'
 
   useEffect(() => {
     let active = true
-    Promise.all([getShelterById(shelterId), getDeliveryResources(), editDraft?.category ? getInventory(editDraft.category) : Promise.resolve([])])
+    Promise.all([getShelterById(shelterId), getDeliveryResources('AVAILABLE'), editDraft?.category ? getInventory(editDraft.category, true) : Promise.resolve([])])
       .then(([shelterData, resourceData, inventoryData]) => {
         if (!active) return
         setShelter(shelterData)
@@ -74,7 +75,7 @@ export default function CreateDistributionPage() {
     if (!nextCategory) return
     setInventoryLoading(true)
     try {
-      setInventory(await getInventory(nextCategory))
+      setInventory(await getInventory(nextCategory, true))
     } catch (requestError) {
       setInventoryError(requestError.response?.data?.message || 'Could not load inventory for this category.')
     } finally {
@@ -123,6 +124,7 @@ export default function CreateDistributionPage() {
 
   if (loading || contextLoading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading distribution form" /></div></DashboardLayout>
   if (pageError || contextError || !shelter) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Unable to prepare distribution</h3><p>{pageError || contextError}</p><button className="btn btn-secondary" onClick={() => navigate(paths.dashboard)}>Back to dashboard</button></div></div></DashboardLayout>
+  if (!hasValidContext || !responseContext.hasPersistedResponsePlan || !responseContext.responseId || recommendedCategories.length === 0) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Persisted relief plan required</h3><p>{!hasValidContext ? 'This incident is no longer active.' : 'Create and dispatch a response assignment containing Food, Water, or Medicine requirements before logging a distribution.'}</p><button className="btn btn-secondary" onClick={() => navigate(paths.dashboard)}>Back to Resource Dashboard</button></div></div></DashboardLayout>
 
   return (
     <DashboardLayout>
@@ -140,7 +142,7 @@ export default function CreateDistributionPage() {
         {incidentId && <ResourceRequirementContext requirements={responseContext.requiredCapabilities || []} compact />}
 
         <form onSubmit={continueToReview} noValidate>
-          <InventorySelector category={category} inventory={inventory} selectedItemName={itemName} selectedInventoryId={inventoryItemId} recommendedCategories={recommendedCategories} loading={inventoryLoading} errors={errors} onCategoryChange={handleCategoryChange} onItemChange={handleItemChange} onInventoryChange={(id) => { setInventoryItemId(id); setQuantity(''); setErrors((current) => ({ ...current, inventory: '', quantity: '' })) }} />
+          <InventorySelector category={category} inventory={inventory} selectedItemName={itemName} selectedInventoryId={inventoryItemId} recommendedCategories={recommendedCategories} restrictToRequirements loading={inventoryLoading} errors={errors} onCategoryChange={handleCategoryChange} onItemChange={handleItemChange} onInventoryChange={(id) => { setInventoryItemId(id); setQuantity(''); setErrors((current) => ({ ...current, inventory: '', quantity: '' })) }} />
           {inventoryError && <div className="api-inline-error"><AlertTriangle size={15} />{inventoryError}</div>}
 
           <section className="form-card">

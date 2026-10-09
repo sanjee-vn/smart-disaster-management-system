@@ -60,7 +60,7 @@ function ResponseAssignmentWorkspace({ incident, teams, teamsError, draft, onRet
         eta: new Date(form.eta).toISOString(), requiredCapabilities: draft.requiredCapabilities,
       })
       savePlanningRequirements(incident.incidentId, result.requiredCapabilities)
-      navigate(`/response-operations/incidents/${encodeURIComponent(incident.incidentId)}/monitoring`, { state: { dispatchNotice: `Response ${result.responseId} dispatched successfully. ${result.teams.length} team${result.teams.length === 1 ? '' : 's'} dispatched; teams remain AVAILABLE for other incidents.` } })
+      navigate(`/response-operations/incidents/${encodeURIComponent(incident.incidentId)}/monitoring`, { state: { dispatchNotice: `Response ${result.responseId} was sent to Staff Mobile and is pending staff acceptance.` } })
     } catch (requestError) {
       const response = requestError.response?.data
       setSubmitError({ code: response?.code, message: response?.message || 'Unable to dispatch the response assignment.' })

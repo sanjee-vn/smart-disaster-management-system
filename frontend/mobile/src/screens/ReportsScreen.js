@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
 import { Button, EmptyState, Filters, LoadingState, Notice, ReportCard, Screen } from '../components/UI';
 import { useReports } from '../context/ReportsContext';
 

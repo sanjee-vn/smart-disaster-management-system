@@ -7,7 +7,7 @@ import MapPlaceholder from '../components/MapPlaceholder'
 import ResourceRequirementContext from '../components/ResourceRequirementContext'
 import ShelterCard from '../components/ShelterCard'
 import useIncidentResponseContext from '../hooks/useIncidentResponseContext'
-import { getDistributions, getShelterById, getShelters, markDistributionDelivered } from '../services/resourceCoordinationService'
+import { getDistributions, getShelterById, getShelters } from '../services/resourceCoordinationService'
 import { formatEnumLabel, getResponseOperationsPaths, getStandaloneResponseContext } from '../utils/responseOperationsRoutes'
 
 export default function ResourceCoordinationDashboard() {
@@ -22,7 +22,6 @@ export default function ResourceCoordinationDashboard() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
-  const [completion, setCompletion] = useState({ distributionId: '', error: '', message: '' })
   const [distributions, setDistributions] = useState([])
   const [distributionError, setDistributionError] = useState('')
 
@@ -78,22 +77,6 @@ export default function ResourceCoordinationDashboard() {
     }
   }
 
-  const completeDelivery = async (resource) => {
-    if (!incidentId || !selectedShelter || !resource.distributionId) return
-    if (!window.confirm(`Mark distribution ${resource.distributionId} as delivered? This will release its delivery resource.`)) return
-    setCompletion({ distributionId: resource.distributionId, error: '', message: '' })
-    try {
-      await markDistributionDelivered(resource.distributionId, incidentId)
-      const [shelterData, shelterList, distributionList] = await Promise.all([getShelterById(selectedShelter.id), getShelters(incidentId), getDistributions(incidentId)])
-      setSelectedShelter(shelterData)
-      setShelters(shelterList)
-      setDistributions(distributionList)
-      setCompletion({ distributionId: '', error: '', message: `${resource.distributionId} was marked delivered and its delivery resource is available.` })
-    } catch (requestError) {
-      setCompletion({ distributionId: '', error: requestError.response?.data?.error?.message || requestError.response?.data?.message || 'Could not complete this delivery.', message: '' })
-    }
-  }
-
   if (contextLoading) return <DashboardLayout><div className="content"><div className="state skeleton" aria-label="Loading incident response context" /></div></DashboardLayout>
   if (contextError) return <DashboardLayout><div className="content"><div className="state error"><AlertTriangle size={26} /><h3>Incident context unavailable</h3><p>{contextError}</p><button className="btn btn-primary" onClick={reloadContext}><RefreshCw size={12} /> Retry</button></div></div></DashboardLayout>
 
@@ -139,9 +122,7 @@ export default function ResourceCoordinationDashboard() {
             <div className="details-grid">
               <section className="panel">
                 <div className="panel-header"><div><h2>Incoming Resources</h2><p>{selectedShelter.incomingResources.length} deliveries scheduled for this shelter</p></div>{incidentId && <button className="btn btn-primary" onClick={() => navigate(paths.create(selectedShelter.id), { state: { responseContext } })}>Log New Distribution</button>}</div>
-                {completion.error && <div className="delivery-completion-message error"><AlertTriangle size={15} />{completion.error}</div>}
-                {completion.message && <div className="delivery-completion-message success">{completion.message}</div>}
-                <IncomingResourcesTable resources={selectedShelter.incomingResources} onMarkDelivered={incidentId ? completeDelivery : undefined} completingId={completion.distributionId} />
+                <IncomingResourcesTable resources={selectedShelter.incomingResources} />
               </section>
               <MapPlaceholder shelter={selectedShelter} />
             </div>

@@ -12,7 +12,7 @@ const findById = (id) => InventoryItem.findById(id)
 
 const findByIdInSession = (id, session) => InventoryItem.findById(id).session(session);
 const decrementAvailableStock = (id, quantity, session) => InventoryItem.findOneAndUpdate(
-  { _id: id, availableQuantity: { $gte: quantity } },
+  { _id: id, status: "ACTIVE", availableQuantity: { $gte: quantity } },
   { $inc: { availableQuantity: -quantity } },
   { returnDocument: "after", session }
 );
