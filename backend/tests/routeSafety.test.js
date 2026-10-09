@@ -48,6 +48,12 @@ for (const [prefix, router] of routers) {
   assert.ok(app.router.stack.some((layer) => layer.handle === router), `${prefix} router is not mounted on the application`);
 }
 const actualWrites = routers.flatMap(([prefix, router]) => routesFor(prefix, router)).sort();
+const hazardRouter = routers.find(([prefix]) => prefix === "/api")[1];
+const hazardAuthLayers = hazardRouter.stack.filter((layer) => !layer.route);
+assert.ok(hazardAuthLayers.some((layer) => layer.match("/hazards/INC-001")), "hazard API must remain protected");
+assert.ok(hazardAuthLayers.some((layer) => layer.match("/warnings/WRN-001")), "warning API must remain protected");
+assert.ok(!hazardAuthLayers.some((layer) => layer.match("/resource-coordination/distributions/DST-001/accept")), "hazard auth must not intercept delivery acceptance");
+assert.ok(!hazardAuthLayers.some((layer) => layer.match("/response-operations/assignments/RSP-001/accept")), "hazard auth must not intercept dispatch acceptance");
 const appWriteCount = app.router.stack.flatMap((layer) => layer.route ? [layer] : layer.handle?.stack || [])
   .filter((layer) => layer.route)
   .flatMap((layer) => Object.keys(layer.route.methods).filter((method) => writeMethods.includes(method))).length;
