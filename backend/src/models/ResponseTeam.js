@@ -6,7 +6,7 @@ const responseTeamSchema = new mongoose.Schema({
   type: { type: String, required: true, trim: true },
   currentLocation: { type: String, trim: true },
   capacity: { type: Number, min: 0 },
-  status: { type: String, required: true, enum: ["AVAILABLE", "DEPLOYED", "UNAVAILABLE"] },
+  status: { type: String, required: true, enum: ["AVAILABLE"], default: "AVAILABLE" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("ResponseTeam", responseTeamSchema);

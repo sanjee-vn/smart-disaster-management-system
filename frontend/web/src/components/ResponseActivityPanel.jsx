@@ -1,5 +1,5 @@
 const teamMetrics = [
-  ['AVAILABLE', 'Available Teams'], ['DEPLOYED', 'Deployed Teams'], ['UNAVAILABLE', 'Unavailable Teams'],
+  ['AVAILABLE', 'Available Teams'],
 ]
 const assignmentMetrics = [
   ['PLANNED', 'Planned Assignments'], ['DISPATCHED', 'Dispatched Assignments'],

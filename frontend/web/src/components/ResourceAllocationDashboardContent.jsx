@@ -11,7 +11,7 @@ const requirementText = (assignment, incidentId) => {
   return requirements.length ? requirements.map((code) => requirementLabels[code]).join(', ') : 'No consumable requirement recorded'
 }
 
-export default function ResourceAllocationDashboardContent({ incidents, assignments, shelters, distributions, inventory, deliveryResources, errors }) {
+export default function ResourceAllocationDashboardContent({ incidents = [], assignments = [], shelters = [], distributions = [], inventory = [], deliveryResources = [], errors = {} }) {
   const navigate = useNavigate()
   const activeIncidents = incidents.filter((incident) => incident.status !== 'RESOLVED')
   const pendingRequests = shelters.reduce((total, shelter) => total + (shelter.pendingRequests?.length || 0), 0)
@@ -21,7 +21,7 @@ export default function ResourceAllocationDashboardContent({ incidents, assignme
   const inventoryByCategory = ['Food', 'Water', 'Medicine'].map((category) => {
     const items = inventory.filter((item) => item.category === category)
     const units = [...new Set(items.map((item) => item.unit))]
-    return { category, records: items.length, quantity: items.reduce((sum, item) => sum + item.availableQuantity, 0), unit: units.length === 1 ? units[0] : 'mixed units' }
+    return { category, records: items.length, quantity: items.reduce((sum, item) => sum + (Number(item.availableQuantity) || 0), 0), unit: units.length === 1 ? units[0] : 'mixed units' }
   })
 
   return <>

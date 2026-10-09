@@ -2,7 +2,7 @@ import { Building2, PackageCheck, TentTree, Users } from 'lucide-react'
 
 export default function MonitoringSummaryCards({ metrics }) {
   const cards = [
-    ['teamsAssigned', 'Teams assigned', Users], ['teamsDeployed', 'Teams deployed', Users],
+    ['teamsAssigned', 'Teams assigned to incident', Users],
     ['activeShelters', 'Active shelters', TentTree], ['occupancy', 'Shelter occupancy', Building2],
     ['capacity', 'Shelter capacity', Building2], ['pendingRequests', 'Pending requests', PackageCheck],
     ['enRoute', 'Distributions en route', PackageCheck], ['completed', 'Completed distributions', PackageCheck],

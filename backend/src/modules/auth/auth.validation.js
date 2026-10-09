@@ -5,6 +5,7 @@ function validateAuth(input, register = false) {
   if (register) {
     if (typeof input.name !== 'string' || !input.name.trim() || input.name.trim().length > 100) errors.name = 'Enter your name, up to 100 characters.';
     else data.name = input.name.trim();
+    if (input.role === 'STAFF_OFFICER') data.role = 'STAFF_OFFICER';
   }
   if (typeof input.email !== 'string' || input.email.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) errors.email = 'Enter a valid email address.';
   else data.email = input.email.trim().toLowerCase();

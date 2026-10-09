@@ -4,6 +4,7 @@ const Agency = require("../models/Agency");
 const ResponseTeam = require("../models/ResponseTeam");
 const ResponseAssignment = require("../models/ResponseAssignment");
 const Distribution = require("../models/Distribution");
+const OperationalRequest = require("../models/OperationalRequest");
 
 const findWarningByWarningId = (warningId) => Warning.findOne({ warningId }).lean();
 const updateWarningByWarningId = (warningId, update) => Warning.findOneAndUpdate(
@@ -15,6 +16,12 @@ const findIncidents = () => Incident.find().populate({ path: "warningId", model:
 const findIncidentByIncidentId = (incidentId) => Incident.findOne({ incidentId }).populate({ path: "warningId", model: Warning }).lean();
 const findAgencies = (filters) => Agency.find(filters).sort({ name: 1 }).lean();
 const findTeams = (filters) => ResponseTeam.find(filters).populate({ path: "agencyId", model: Agency, select: "name type contact status" }).sort({ name: 1 }).lean();
+const findTeamById = (teamId) => ResponseTeam.findById(teamId).populate({ path: "agencyId", model: Agency, select: "name type contact status" }).lean();
+const releaseDeployedTeam = (teamId) => ResponseTeam.findOneAndUpdate(
+  { _id: teamId, status: { $ne: "AVAILABLE" } },
+  { $set: { status: "AVAILABLE" } },
+  { returnDocument: "after", runValidators: true },
+).lean();
 const findAssignments = (filters) => ResponseAssignment.find(filters)
   .populate({ path: "incidentId", model: Incident, select: "incidentId hazardType severity district status" })
   .populate({ path: "teamIds", model: ResponseTeam, populate: { path: "agencyId", model: Agency, select: "name type" } })
@@ -36,11 +43,6 @@ const findIncidentForDispatch = (incidentId, session) => Incident.findOne({ inci
 const findAssignmentForDispatch = (responseId, session) => ResponseAssignment.findOne({ responseId }).session(session).lean();
 const findExistingAssignmentForDispatch = (incidentId, session) => ResponseAssignment.findOne({ incidentId }).sort({ createdAt: -1 }).session(session).lean();
 const findTeamsForDispatch = (teamIds, session) => ResponseTeam.find({ _id: { $in: teamIds } }).session(session).lean();
-const deployAvailableTeams = (teamIds, session) => ResponseTeam.updateMany(
-  { _id: { $in: teamIds }, status: "AVAILABLE" },
-  { $set: { status: "DEPLOYED" } },
-  { session }
-);
 const updatePlannedAssignment = (assignmentId, update, session) => ResponseAssignment.findOneAndUpdate(
   { _id: assignmentId, status: "PLANNED" },
   { $set: update },
@@ -59,11 +61,6 @@ const findAssignmentWithDetailsById = (assignmentId) => ResponseAssignment.findB
 const findCurrentAssignmentByIncident = (incidentId, session) => ResponseAssignment.findOne({ incidentId, status: { $in: ["DISPATCHED", "IN_PROGRESS"] } }).sort({ createdAt: -1 }).session(session).lean();
 const findAnyAssignmentByIncident = (incidentId, session) => ResponseAssignment.findOne({ incidentId }).sort({ createdAt: -1 }).session(session).lean();
 const findTeamsForResolution = (teamIds, session) => ResponseTeam.find({ _id: { $in: teamIds } }).session(session).lean();
-const releaseDeployedTeams = (teamIds, session) => ResponseTeam.updateMany(
-  { _id: { $in: teamIds }, status: "DEPLOYED" },
-  { $set: { status: "AVAILABLE" } },
-  { session }
-);
 const completeAssignment = (assignmentId, session) => ResponseAssignment.findOneAndUpdate(
   { _id: assignmentId, status: { $in: ["DISPATCHED", "IN_PROGRESS"] } },
   { $set: { status: "COMPLETED" } },
@@ -75,13 +72,14 @@ const resolveIncident = (incidentId, session) => Incident.findOneAndUpdate(
   { returnDocument: "after", runValidators: true, session }
 ).lean();
 const countOutstandingDistributions = (incidentId, session) => Distribution.countDocuments({ incidentId, status: "EN_ROUTE" }).session(session);
+const countOutstandingOperationalRequests = (incidentId, session) => OperationalRequest.countDocuments({ incidentId, status: { $in: ["PENDING", "APPROVED"] } }).session(session);
 
 module.exports = {
   findWarningByWarningId, updateWarningByWarningId, findIncidents, findIncidentByIncidentId,
-  findAgencies, findTeams, findAssignments, runInTransaction, findIncidentForDispatch,
-  findAssignmentForDispatch, findExistingAssignmentForDispatch, findTeamsForDispatch, deployAvailableTeams,
+  findAgencies, findTeams, findTeamById, releaseDeployedTeam, findAssignments, runInTransaction, findIncidentForDispatch,
+  findAssignmentForDispatch, findExistingAssignmentForDispatch, findTeamsForDispatch,
   updatePlannedAssignment, createAssignment, updateIncidentResponseStatus,
   findAssignmentWithDetailsById,
-  findCurrentAssignmentByIncident, findAnyAssignmentByIncident, findTeamsForResolution, releaseDeployedTeams,
-  completeAssignment, resolveIncident, countOutstandingDistributions,
+  findCurrentAssignmentByIncident, findAnyAssignmentByIncident, findTeamsForResolution,
+  completeAssignment, resolveIncident, countOutstandingDistributions, countOutstandingOperationalRequests,
 };

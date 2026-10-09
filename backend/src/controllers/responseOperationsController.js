@@ -18,6 +18,9 @@ const listAgencies = async (req, res, next) => {
 const listTeams = async (req, res, next) => {
   try { res.json({ success: true, data: await service.getTeams(req.query) }); } catch (error) { next(error); }
 };
+const markTeamAvailable = async (req, res, next) => {
+  try { res.json({ success: true, data: await service.markTeamAvailable(req.params.teamId) }); } catch (error) { next(error); }
+};
 const listAssignments = async (req, res, next) => {
   try { res.json({ success: true, data: await service.getAssignments(req.query) }); } catch (error) { next(error); }
 };
@@ -28,4 +31,4 @@ const resolveResponse = async (req, res, next) => {
   try { res.json({ success: true, data: await service.resolveResponse(req.params.incidentId) }); } catch (error) { next(error); }
 };
 
-module.exports = { getWarning, updateWarning, listIncidents, getIncident, listAgencies, listTeams, listAssignments, dispatchAssignment, resolveResponse };
+module.exports = { getWarning, updateWarning, listIncidents, getIncident, listAgencies, listTeams, markTeamAvailable, listAssignments, dispatchAssignment, resolveResponse };

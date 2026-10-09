@@ -801,6 +801,17 @@
 .assignment-api-error strong { display: block; font-size: 10px; }
 .assignment-api-error p { margin: 2px 0 0; font-size: 9px; }
 .assignment-api-error .back-link { margin: 0; color: inherit; }
+.dispatch-blocked-state { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border: 1px solid #e5c77d; border-radius: 9px; background: #fff8e8; color: #795d1f; }
+.dispatch-blocked-state > div { flex: 1; min-width: 0; }
+.dispatch-blocked-state strong { display: block; font-size: 11px; }
+.dispatch-blocked-state p { margin: 4px 0 12px; font-size: 9px; line-height: 1.55; }
+.dispatch-blocked-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dispatch-blocked-actions .btn { display: inline-flex; gap: 6px; align-items: center; }
+.dispatch-blocked-actions .back-link { margin: 0; }
+.approved-team-summary { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 12px; }
+.approved-team-summary > div { display: flex; gap: 6px; align-items: center; }
+.approved-team-summary dt { font-size: 8px; text-transform: uppercase; }
+.approved-team-summary dd { margin: 0; font-size: 9px; font-weight: 700; }
 .assignment-review-card { border-color: #b9d8ca; box-shadow: 0 7px 23px rgba(30,83,63,.06); }
 .assignment-review-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin: 0; }
 .assignment-review-details > div { display: flex; justify-content: space-between; gap: 12px; align-items: center; min-height: 38px; border-bottom: 1px solid #edf1ef; }
@@ -883,3 +894,42 @@
 @media (max-width: 800px) { .shelter-coordination-header { flex-direction: column; } .shelter-context-meta { width: 100%; min-width: 0; } }
 @media (max-width: 650px) { .shelter-summary-cards, .selected-shelter-facts { grid-template-columns: 1fr 1fr; } .selected-shelter-actions { align-items: stretch; flex-direction: column; } .selected-shelter-actions .btn { justify-content: center; } }
 @media (max-width: 430px) { .shelter-summary-cards, .selected-shelter-facts, .shelter-context-meta { grid-template-columns: 1fr; } .shelter-context-meta > div { border-right: 0; } }
+
+/* Incident-scoped role navigation stays visible while unavailable steps remain clearly disabled. */
+.app-shell .sidebar .nav-item:disabled { cursor: not-allowed; opacity: .42; }
+.app-shell .sidebar .nav-item:disabled:hover { background: transparent; color: #c4d7cd; }
+
+.request-status-filters { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; padding: 10px; border: 1px solid #e0e9e4; border-radius: 8px; background: #fff; }
+.request-status-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.request-status-tabs button { border: 1px solid #dbe5df; border-radius: 18px; padding: 7px 12px; background: #fff; color: #617269; font-size: 9px; font-weight: 700; }
+.request-status-tabs button.active { border-color: #177b5d; background: #177b5d; color: #fff; }
+.request-status-filters label { display: flex; align-items: center; gap: 8px; color: #64756c; font-size: 9px; font-weight: 700; }
+.request-status-filters select { min-width: 165px; border: 1px solid #dbe5df; border-radius: 6px; padding: 7px 9px; background: #fff; color: #405248; font-size: 9px; }
+.request-status-table { min-width: 1450px; }
+@media (max-width: 720px) { .request-status-filters { align-items: stretch; flex-direction: column; } .request-status-filters label { justify-content: space-between; } }
+.response-summary-link { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.response-summary-link:hover { border-color: #79ae98; box-shadow: 0 4px 12px #174d3920; }
+.response-summary-link:disabled { cursor: default; }
+.request-status-message { max-width: 210px; white-space: normal; line-height: 1.45; }
+.request-status-actions { display: flex; align-items: center; gap: 6px; }
+.request-status-actions .btn { display: inline-flex; align-items: center; gap: 4px; }
+.request-action-message { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; border-radius: 7px; padding: 10px 12px; font-size: 10px; font-weight: 600; }
+.request-action-message.success { border: 1px solid #cbe7d8; background: #eaf7f0; color: #277452; }
+.request-action-message.error { border: 1px solid #f0d0c9; background: #fff0ed; color: #a94639; }
+.request-review-actions { display: flex; align-items: center; gap: 6px; }
+.request-review-actions .btn:disabled { cursor: not-allowed; opacity: .48; }
+.request-rejection-editor { display: grid; min-width: 220px; gap: 6px; }
+.request-rejection-editor select, .request-rejection-editor textarea { width: 100%; border: 1px solid #cfdbd5; border-radius: 7px; padding: 7px; background: #fff; color: #28483c; font: inherit; }
+.request-rejection-editor textarea { resize: vertical; }
+.request-rejection-editor > div { display: flex; align-items: center; gap: 6px; }
+.team-availability-panel { margin-top: 18px; }
+.team-release-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; padding: 16px; }
+.team-release-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px; border: 1px solid #dbe6e0; border-radius: 10px; background: #fbfdfc; }
+.team-release-card > div { display: grid; gap: 4px; }
+.team-release-card > div:last-child { justify-items: end; }
+.team-release-card strong { color: #1f4335; }
+.team-release-card span, .team-release-card small { color: #6d8178; }
+.component03-fatal-state { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 30px; background: #f3f6f4; color: #8f3e33; text-align: center; }
+.component03-fatal-state h1 { margin: 0; color: #293d34; font-size: 22px; }
+.component03-fatal-state p { max-width: 620px; margin: 0; color: #68786f; }
+.component03-fatal-state > div { display: flex; gap: 8px; margin-top: 8px; }

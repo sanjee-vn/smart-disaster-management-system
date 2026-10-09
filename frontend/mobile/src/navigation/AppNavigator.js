@@ -16,6 +16,9 @@ import LogoScreen from '../screens/auth/LogoScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import StaffHomeScreen from '../screens/StaffHomeScreen';
+import StaffMapScreen from '../screens/StaffMapScreen';
+import StaffResourceReportsScreen from '../screens/StaffResourceReportsScreen';
 
 const Tabs = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -34,17 +37,27 @@ function MainTabs() {
     <Tabs.Screen name="Profile" component={ProfileScreen} />
   </Tabs.Navigator>;
 }
+function StaffTabs() {
+  return <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: c.primary, tabBarInactiveTintColor: '#738991', tabBarLabelStyle: { fontSize: 11, fontWeight: '600' }, tabBarIcon: ({ focused, color }) => <Icon name={`${({ Home: 'home', Map: 'map', Reports: 'documents', Profile: 'person' })[route.name]}${focused ? '' : '-outline'}`} size={23} color={color}/> })}>
+    <Tabs.Screen name="Home" component={StaffHomeScreen}/>
+    <Tabs.Screen name="Map" component={StaffMapScreen}/>
+    <Tabs.Screen name="Reports" component={StaffResourceReportsScreen}/>
+    <Tabs.Screen name="Profile" component={ProfileScreen}/>
+  </Tabs.Navigator>;
+}
 export default function AppNavigator() {
   const { user, onboarded, restoring, restoreError } = useAuth();
   if (restoring || restoreError) return <LogoScreen />;
   return <ReportsProvider key={user?.id || 'signed-out'} userId={user?.id}><NavigationContainer theme={theme}><Stack.Navigator screenOptions={{ headerTintColor: c.text, headerShadowVisible: false, headerTitleStyle: { fontSize: 17 }, contentStyle: { backgroundColor: c.background } }}>
     {user ? <Stack.Group navigationKey={user.id}>
-    <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+    <Stack.Screen name="MainTabs" component={user.role === 'STAFF_OFFICER' ? StaffTabs : MainTabs} options={{ headerShown: false }} />
+    {user.role !== 'STAFF_OFFICER' && <>
     <Stack.Screen name="ReportIncident" component={GroundReportScreen} options={{ title: 'Report an Incident' }} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} options={{ title: 'Report Details' }} />
     <Stack.Screen name="Alerts" component={AlertsScreen} options={{ title: 'Alerts & Updates' }} />
     <Stack.Screen name="Contacts" component={ContactsScreen} options={{ title: 'Emergency Contacts' }} />
     <Stack.Screen name="Guidelines" component={GuidelinesScreen} options={{ title: 'Safety Guidelines' }} />
+    </>}
     <Stack.Screen name="Preferences" component={PreferencesScreen} options={({ route }) => ({ title: route.params?.title || 'Preferences' })} />
     </Stack.Group> : !onboarded ? <Stack.Group navigationKey="onboarding" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="OnboardingOne" component={OnboardingScreen} />
