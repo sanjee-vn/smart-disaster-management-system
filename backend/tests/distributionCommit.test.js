@@ -129,6 +129,24 @@ const run = async () => {
   assert.equal(state.distributions.length, 1);
   assert.equal(state.inventory.availableQuantity, 900);
 
+  for (const [payload, code] of [
+    [{ ...validPayload, incidentId: "" }, "INCIDENT_NOT_FOUND"],
+    [{ ...validPayload, shelterId: "invalid-id" }, "SHELTER_NOT_FOUND"],
+    [{ ...validPayload, inventoryItemId: "invalid-id" }, "INVENTORY_ITEM_NOT_FOUND"],
+    [{ ...validPayload, resourceOwnerId: "invalid-id" }, "RESOURCE_OWNER_NOT_FOUND"],
+    [{ ...validPayload, quantity: "" }, "INVALID_QUANTITY"],
+    [{ ...validPayload, quantity: -1 }, "INVALID_QUANTITY"],
+    [{ ...validPayload, deliveryResourceId: "invalid-id" }, "DELIVERY_RESOURCE_NOT_FOUND"],
+    [{ ...validPayload, eta: "not-a-date" }, "INVALID_ETA"],
+    [{ ...validPayload, requestId: "  " }, "INVALID_IDEMPOTENCY_KEY"],
+    [{ ...validPayload, requestId: "r".repeat(201) }, "INVALID_IDEMPOTENCY_KEY"],
+    [{ ...validPayload, notes: "x".repeat(501) }, "INVALID_NOTES"],
+  ]) {
+    reset();
+    await expectCode(() => service.createDistribution(payload), code);
+    assert.equal(state.inventory.availableQuantity, 1000, `${code} must not change stock`);
+  }
+
   reset(); state.inventory.availableQuantity = 50;
   await expectCode(() => service.createDistribution(validPayload), "INSUFFICIENT_STOCK");
   assert.equal(state.inventory.availableQuantity, 50);
@@ -143,11 +161,20 @@ const run = async () => {
   reset(); state.assignment = null;
   await expectCode(() => service.createDistribution({ ...validPayload, responseId: undefined }), "RELIEF_CONTEXT_REQUIRED");
 
+  reset();
+  await expectCode(() => service.createDistribution({ ...validPayload, responseId: "RSP-MISSING" }), "RESPONSE_ASSIGNMENT_NOT_FOUND");
+
+  reset(); state.shelter.incidentId = "INC-OTHER";
+  await expectCode(() => service.createDistribution(validPayload), "SHELTER_NOT_FOUND");
+
   reset(); state.assignment.requiredCapabilities = ["FOOD"];
   await expectCode(() => service.createDistribution(validPayload), "RESOURCE_NOT_REQUIRED");
 
   reset(); state.inventory.status = "INACTIVE";
   await expectCode(() => service.createDistribution(validPayload), "INVENTORY_ITEM_INACTIVE");
+
+  reset(); state.inventory.ownerId = new mongoose.Types.ObjectId();
+  await expectCode(() => service.createDistribution(validPayload), "RESOURCE_OWNER_NOT_FOUND");
 
   reset();
   await expectCode(() => service.createDistribution({ ...validPayload, requestId: "" }), "INVALID_IDEMPOTENCY_KEY");
