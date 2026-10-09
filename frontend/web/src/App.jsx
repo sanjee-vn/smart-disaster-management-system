@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Menu, MoreHorizontal, Send, Siren, X, Activity } from 'lucide-react';
 import { Badge, Brand, Button, Field, Header, MapPanel } from './components/ui.jsx';
 import DashboardScreen from './components/screens/Dashboard.jsx';
@@ -27,7 +27,6 @@ import ReviewDistributionPage from './pages/ReviewDistributionPage.jsx';
 import ProcessingDistributionPage from './pages/ProcessingDistributionPage.jsx';
 import DistributionSuccessPage from './pages/DistributionSuccessPage.jsx';
 import ResponseMonitoringPage from './pages/ResponseMonitoringPage.jsx';
-import OperationalRequestsPage from './pages/OperationalRequestsPage.jsx';
 import OperationalRequestStatusPage from './pages/OperationalRequestStatusPage.jsx';
 import DistrictResourceDashboard from './pages/DistrictResourceDashboard.jsx';
 import WarningReviewPage from './pages/WarningReviewPage.jsx';
@@ -35,6 +34,11 @@ import ConfigureWarningPage from './pages/ConfigureWarningPage.jsx';
 import WarningStatusPage from './pages/WarningStatusPage.jsx';
 import Component03ErrorBoundary from './components/Component03ErrorBoundary.jsx';
 import './App.css';
+
+function RemovedOperationalRequestsRedirect() {
+  const { incidentId } = useParams();
+  return <Navigate to={`/response-operations/incidents/${encodeURIComponent(incidentId)}`} replace/>;
+}
 
 const initialWarning = {
   level: 'High', urgency: 'Immediate', confidence: 'High', recommendation: 'Issue a public warning to flood-prone communities and coordinate evacuation readiness with local authorities.',
@@ -289,7 +293,7 @@ function App() {
     <Route path="/response-operations/incidents/:incidentId/teams" element={responseOnly(<TeamSelectionPage/>)}/>
     <Route path="/response-operations/incidents/:incidentId/assignment" element={responseOnly(<ResponseAssignmentPage/>)}/>
     <Route path="/response-operations/incidents/:incidentId/shelters" element={responseOnly(<ShelterCoordinationPage/>)}/>
-    <Route path="/response-operations/incidents/:incidentId/requests" element={responseOnly(<OperationalRequestsPage/>)}/>
+    <Route path="/response-operations/incidents/:incidentId/requests" element={responseOnly(<RemovedOperationalRequestsRedirect/>)}/>
     <Route path="/response-operations/incidents/:incidentId/monitoring" element={responseOnly(<ResponseMonitoringPage/>)}/>
     <Route path="/response-operations/incidents/:incidentId/resources" element={resourceIncidentPage}/>
     <Route path="/response-operations/incidents/:incidentId/resources/new/:shelterId" element={resourceOnly(<CreateDistributionPage/>)}/>

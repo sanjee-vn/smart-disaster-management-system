@@ -11,6 +11,9 @@ const getShelter = async (req, res, next) => {
     res.json({ success: true, data: await service.getShelterById(req.params.id) });
   } catch (error) { next(error); }
 };
+const createShelter = async (req, res, next) => {
+  try { res.status(201).json({ success: true, data: await service.createShelter(req.body) }); } catch (error) { next(error); }
+};
 
 const listInventory = async (req, res, next) => {
   try {
@@ -36,4 +39,4 @@ const getDeliveryResource = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { listShelters, getShelter, listInventory, getInventoryItem, listDeliveryResources, getDeliveryResource };
+module.exports = { listShelters, createShelter, getShelter, listInventory, getInventoryItem, listDeliveryResources, getDeliveryResource };

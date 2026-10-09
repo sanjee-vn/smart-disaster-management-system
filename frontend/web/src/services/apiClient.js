@@ -4,7 +4,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  // MongoDB Atlas can need longer on the first request after an idle period.
+  // Keep the UI from reporting a false incident-context failure while the
+  // backend is establishing that connection.
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
 

@@ -5,13 +5,18 @@ export const getShelters = async (incidentId) => {
   return response.data.data
 }
 
+export const registerShelter = async (payload) => {
+  const response = await api.post('/resource-coordination/shelters', payload)
+  return response.data.data
+}
+
 export const getShelterById = async (id) => {
   const response = await api.get(`/resource-coordination/shelters/${id}`)
   return response.data.data
 }
 
-export const getInventory = async (category) => {
-  const response = await api.get('/resource-coordination/inventory', { params: category ? { category } : {} })
+export const getInventory = async (category, availableOnly = false) => {
+  const response = await api.get('/resource-coordination/inventory', { params: { ...(category ? { category } : {}), ...(availableOnly ? { availableOnly: 'true' } : {}) } })
   return response.data.data
 }
 
@@ -20,8 +25,8 @@ export const getInventoryItemById = async (id) => {
   return response.data.data
 }
 
-export const getDeliveryResources = async () => {
-  const response = await api.get('/resource-coordination/delivery-resources')
+export const getDeliveryResources = async (status) => {
+  const response = await api.get('/resource-coordination/delivery-resources', { params: status ? { status } : {} })
   return response.data.data
 }
 
@@ -37,10 +42,5 @@ export const commitDistribution = async (payload) => {
 
 export const getDistributions = async (incidentId) => {
   const response = await api.get('/resource-coordination/distributions', { params: { incidentId } })
-  return response.data.data
-}
-
-export const markDistributionDelivered = async (distributionId, incidentId) => {
-  const response = await api.patch(`/resource-coordination/distributions/${distributionId}/deliver`, { incidentId })
   return response.data.data
 }

@@ -14,9 +14,9 @@ const ids = {
 
 const targets = {
   mongoose: [mongoose, ["startSession"]],
-  distribution: [distributionRepository, ["findForCompletion", "markDelivered", "findByDistributionId"]],
+  distribution: [distributionRepository, ["findForCompletion", "acceptForDelivery", "markDelivered", "findByDistributionId"]],
   delivery: [deliveryResourceRepository, ["releaseInUse"]],
-  shelter: [shelterRepository, ["markIncomingResourceDelivered"]],
+  shelter: [shelterRepository, ["markIncomingResourceEnRoute", "markIncomingResourceDelivered"]],
   response: [responseOperationsRepository, ["findIncidentForDispatch"]],
 };
 const originals = Object.fromEntries(Object.entries(targets).map(([key, [object, names]]) => [key, Object.fromEntries(names.map((name) => [name, object[name]]))]));
@@ -68,6 +68,11 @@ const reset = () => {
   });
   responseOperationsRepository.findIncidentForDispatch = async (incidentId) => state.incident.incidentId === incidentId ? state.incident : null;
   distributionRepository.findForCompletion = async (distributionId, incidentId) => state.distribution.distributionId === distributionId && state.distribution.incidentId.toString() === incidentId.toString() ? state.distribution : null;
+  distributionRepository.acceptForDelivery = async (_id, acceptedAt, acceptedBy) => {
+    if (state.distribution.status !== "PENDING") return null;
+    Object.assign(state.distribution, { status: "EN_ROUTE", acceptedAt, acceptedBy });
+    return state.distribution;
+  };
   distributionRepository.markDelivered = async () => {
     if (state.distribution.status !== "EN_ROUTE") return null;
     state.distribution.status = "DELIVERED";
@@ -85,11 +90,27 @@ const reset = () => {
     state.shelter.incomingResources[0].status = "Delivered";
     return true;
   };
+  shelterRepository.markIncomingResourceEnRoute = async () => {
+    if (shelterConflict) return false;
+    state.shelter.incomingResources[0].status = "EN_ROUTE";
+    return true;
+  };
 };
 
 const expectCode = (operation, code) => assert.rejects(operation, (error) => error.code === code);
 
 const run = async () => {
+  reset();
+  state.distribution.status = "PENDING";
+  state.shelter.incomingResources[0].status = "PENDING";
+  const accepted = await service.acceptDistribution("DST-2026-TEST0001", { id: "staff-01", name: "Staff Officer" });
+  assert.equal(accepted.status, "EN_ROUTE");
+  assert.ok(accepted.acceptedAt);
+  assert.equal(accepted.acceptedBy, "Staff Officer");
+  assert.equal(state.shelter.incomingResources[0].status, "EN_ROUTE");
+
+  await expectCode(() => service.acceptDistribution("DST-2026-TEST0001", { id: "staff-01" }), "DISTRIBUTION_ALREADY_ACCEPTED");
+
   reset();
   const delivered = await service.markDistributionDelivered("DST-2026-TEST0001", { incidentId: "INC-TEST-01" });
   assert.equal(delivered.status, "DELIVERED");
@@ -119,7 +140,7 @@ const run = async () => {
   mongoose.startSession = async () => ({ withTransaction: async () => { throw new Error("Transactions are not supported"); }, endSession: async () => {} });
   await expectCode(() => service.markDistributionDelivered("DST-2026-TEST0001", { incidentId: "INC-TEST-01" }), "TRANSACTION_UNAVAILABLE");
 
-  console.log("Distribution delivery tests passed: atomic completion, resource release, shelter update, transition validation, and rollback behavior.");
+  console.log("Distribution delivery tests passed: staff acceptance, atomic completion, resource release, shelter update, transition validation, and rollback behavior.");
 };
 
 run().finally(() => {

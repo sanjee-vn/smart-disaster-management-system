@@ -44,7 +44,7 @@ const findAssignmentForDispatch = (responseId, session) => ResponseAssignment.fi
 const findExistingAssignmentForDispatch = (incidentId, session) => ResponseAssignment.findOne({ incidentId }).sort({ createdAt: -1 }).session(session).lean();
 const findTeamsForDispatch = (teamIds, session) => ResponseTeam.find({ _id: { $in: teamIds } }).session(session).lean();
 const updatePlannedAssignment = (assignmentId, update, session) => ResponseAssignment.findOneAndUpdate(
-  { _id: assignmentId, status: "PLANNED" },
+  { _id: assignmentId, status: { $in: ["PLANNED", "DISPATCHED", "IN_PROGRESS"] } },
   { $set: update },
   { returnDocument: "after", runValidators: true, session }
 ).lean();
@@ -58,6 +58,11 @@ const findAssignmentWithDetailsById = (assignmentId) => ResponseAssignment.findB
   .populate({ path: "incidentId", model: Incident, select: "incidentId hazardType severity district status" })
   .populate({ path: "teamIds", model: ResponseTeam, populate: { path: "agencyId", model: Agency, select: "name type" } })
   .lean();
+const acceptAssignmentByStaff = (responseId, acceptedAt, acceptedBy, session) => ResponseAssignment.findOneAndUpdate(
+  { responseId, status: { $in: ["DISPATCHED", "IN_PROGRESS"] }, staffStatus: { $ne: "DISPATCHED" } },
+  { $set: { staffStatus: "DISPATCHED", staffAcceptedAt: acceptedAt, staffAcceptedBy: acceptedBy } },
+  { returnDocument: "after", runValidators: true, session }
+).lean();
 const findCurrentAssignmentByIncident = (incidentId, session) => ResponseAssignment.findOne({ incidentId, status: { $in: ["DISPATCHED", "IN_PROGRESS"] } }).sort({ createdAt: -1 }).session(session).lean();
 const findAnyAssignmentByIncident = (incidentId, session) => ResponseAssignment.findOne({ incidentId }).sort({ createdAt: -1 }).session(session).lean();
 const findTeamsForResolution = (teamIds, session) => ResponseTeam.find({ _id: { $in: teamIds } }).session(session).lean();
@@ -71,7 +76,7 @@ const resolveIncident = (incidentId, session) => Incident.findOneAndUpdate(
   { $set: { status: "RESOLVED" } },
   { returnDocument: "after", runValidators: true, session }
 ).lean();
-const countOutstandingDistributions = (incidentId, session) => Distribution.countDocuments({ incidentId, status: "EN_ROUTE" }).session(session);
+const countOutstandingDistributions = (incidentId, session) => Distribution.countDocuments({ incidentId, status: { $in: ["PENDING", "EN_ROUTE"] } }).session(session);
 const countOutstandingOperationalRequests = (incidentId, session) => OperationalRequest.countDocuments({ incidentId, status: { $in: ["PENDING", "APPROVED"] } }).session(session);
 
 module.exports = {
@@ -80,6 +85,7 @@ module.exports = {
   findAssignmentForDispatch, findExistingAssignmentForDispatch, findTeamsForDispatch,
   updatePlannedAssignment, createAssignment, updateIncidentResponseStatus,
   findAssignmentWithDetailsById,
+  acceptAssignmentByStaff,
   findCurrentAssignmentByIncident, findAnyAssignmentByIncident, findTeamsForResolution,
   completeAssignment, resolveIncident, countOutstandingDistributions, countOutstandingOperationalRequests,
 };
