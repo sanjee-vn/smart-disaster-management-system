@@ -69,7 +69,18 @@ async function updateReportReview(reportId, changes = {}) {
 
 async function listPublishedAlerts() {
   const warnings = await Warning.find({ status: "Published" }).sort({ createdAt: -1 }).limit(100).lean();
-  return warnings.map((item) => ({
+  const [reports, hazards] = await Promise.all([
+    GroundReport.find({ _id: { $in: warnings.map(item => item.sourceReportId).filter(Boolean) } }).lean(),
+    Hazard.find({ hazardId: { $in: warnings.map(item => item.hazardId) } }).lean(),
+  ]);
+  return warnings.map((item) => {
+    const report = reports.find(report => String(report._id) === String(item.sourceReportId));
+    const hazard = hazards.find(hazard => hazard.hazardId === item.hazardId);
+    const match = hazard?.location?.match(/^\s*(-?\d+(?:\.\d+)?)\s*([NS])\s*,\s*(-?\d+(?:\.\d+)?)\s*([EW])\s*$/i);
+    const latitude = report?.latitude ?? (match ? Number(match[1]) * (match[2].toUpperCase() === 'S' ? -1 : 1) : null);
+    const longitude = report?.longitude ?? (match ? Number(match[3]) * (match[4].toUpperCase() === 'W' ? -1 : 1) : null);
+    const valid = Number.isFinite(latitude) && Math.abs(latitude) <= 90 && Number.isFinite(longitude) && Math.abs(longitude) <= 180;
+    return {
     id: item.warningId,
     title: item.warning?.title || `${item.level} warning`,
     message: item.warning?.message || "",
@@ -81,7 +92,12 @@ async function listPublishedAlerts() {
     end: item.warning?.end || null,
     expiry: item.warning?.expiry || null,
     publishedAt: item.createdAt,
-  }));
+    disasterType: hazard?.type || report?.disasterType || 'Other',
+    latitude: valid ? latitude : null,
+    longitude: valid ? longitude : null,
+    locationLabel: report ? 'Reported incident location' : 'Hazard location',
+  };
+  });
 }
 
 async function ensureHazardForReport(reportId) {

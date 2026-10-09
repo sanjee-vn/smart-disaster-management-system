@@ -12,6 +12,6 @@ export default function DashboardLayout({ children, activeSection = 'resources',
     ? 'Assessment / Warning Officer'
     : incidentResourceRoute.test(pathname) || legacyResourceRoute.test(pathname) || resourceOperationsRoute.test(pathname) || resourceEntry
       ? 'District / Resource Coordination Officer'
-      : 'Response / Operations Officer')
+      : 'Response Officer')
   return <SdewsLayout role={role} breadcrumb={breadcrumb} contentClassName="component03-content-area"><div className="resource-shell" data-section={activeSection}>{children}</div></SdewsLayout>
 }

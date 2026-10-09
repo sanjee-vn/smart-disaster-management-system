@@ -17,7 +17,7 @@ export default function OnboardingScreen({ route, navigation }) {
     finally { setBusy(false); }
   }
   return <LinearGradient colors={['#D3E9D6', '#F2F6F2']} style={a.flex}><SafeAreaView style={a.flex}><ScrollView contentContainerStyle={styles.page}>
-    <View style={styles.top}><Text style={styles.wordmark}>Disaster Connect</Text><Pressable accessibilityRole="button" disabled={busy} onPress={finish} style={a.touch}><Text style={a.link}>Skip</Text></Pressable></View>
+    <View style={styles.top}><Text style={styles.wordmark}>ResQConnect</Text><Pressable accessibilityRole="button" disabled={busy} onPress={finish} style={a.touch}><Text style={a.link}>Skip</Text></Pressable></View>
     <View style={styles.art}><View style={styles.orbit} /><View style={styles.orbitInner} /><View style={styles.mainIcon}><Icon name={second ? 'megaphone-outline' : 'map-outline'} size={72} color="#17644D" /></View><View style={styles.smallIcon}><Icon name={second ? 'location-outline' : 'shield-checkmark-outline'} size={29} color="#3F7551" /></View></View>
     <View style={styles.copy}><Text style={styles.eyebrow}>{second ? 'MAKE A DIFFERENCE' : 'STAY CONNECTED'}</Text><Text style={styles.title}>{second ? 'See it. Report it.' : 'Know your surroundings.'}</Text><Text style={styles.description}>{second ? 'Share what you observe with a location and clear details. Keep your report receipt and follow official guidance.' : 'Explore the map and find useful emergency contacts. Check official information to stay informed about your area.'}</Text></View>
     <View style={styles.dots}><View style={[styles.dot, !second && styles.activeDot]} /><View style={[styles.dot, second && styles.activeDot]} /></View>

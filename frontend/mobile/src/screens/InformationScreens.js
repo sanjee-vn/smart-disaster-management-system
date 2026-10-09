@@ -60,9 +60,9 @@ const TOPICS = {
   Notifications: ['Notification preferences', 'Push notifications and a live alert feed are not enabled yet. No notification preference is being presented as an active delivery setting.'],
   Language: ['Application language', 'The interface currently supports English. Sinhala and Tamil language options can be added when translations are available.'],
   Accessibility: ['Accessible by design', 'The interface supports system text scaling, labeled actions and large touch targets. Adjust font size and screen-reader preferences in your phone accessibility settings.'],
-  Privacy: ['Privacy & security', 'Your session token is kept in secure device storage. Reports are submitted under your account. Copies of successful submissions are stored on this device; report history and server-side verification updates are not synced yet.'],
+  Privacy: ['Privacy & security', 'Your session token is kept in secure device storage. Reports are submitted under your account. Copies of successful submissions are stored on this device; report history is refreshed from the server when available.'],
   Support: ['Help & support', 'Keep your computer and phone on the same network for development testing. If report submission fails, your entered details remain on the form. If a connection times out, retrying may create a duplicate report.'],
-  About: ['Disaster Connect', 'A Smart Disaster Management System connecting citizen ground reports with disaster-response teams. Citizen reporting is implemented; live alerts and server-side tracking are future integrations. Version 1.0.0.'],
+  About: ['ResQConnect', 'A Smart Disaster Management System connecting citizen ground reports with disaster-response teams. Report incidents, view published warnings and follow response updates. Version 1.0.0.'],
 };
 export function PreferencesScreen({ route }) {
   const topic = route.params?.topic;

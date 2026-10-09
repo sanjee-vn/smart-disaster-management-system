@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Location from 'expo-location';
-import { submitGroundReport } from '../services/reports';
+import { submitGroundReport, uploadReportPhoto } from '../services/reports';
 import { useReports } from '../context/ReportsContext';
 import { DISASTERS } from '../utils/reports.cjs';
 import { validateForm } from '../utils/reportValidation.cjs';
@@ -20,6 +20,7 @@ function Heading({ number, title, subtitle }) {
 export default function GroundReportScreen({ navigation }) {
   const { recordReport, storageError } = useReports();
   const [form, setForm] = useState(EMPTY);
+  const [photoAsset, setPhotoAsset] = useState(null);
   const [location, setLocation] = useState(null);
   const [errors, setErrors] = useState({});
   const [locationError, setLocationError] = useState('');
@@ -68,10 +69,11 @@ export default function GroundReportScreen({ navigation }) {
     if (Object.keys(next).length) { scroll.current?.scrollTo({ y: 0, animated: true }); return; }
     lock.current = true; setSending(true);
     try {
+      const photo = photoAsset ? await uploadReportPhoto(photoAsset) : null;
       const report = await submitGroundReport({
         title: form.title.trim(), description: form.description.trim(), disasterType: form.disasterType,
         latitude: location.latitude, longitude: location.longitude,
-        photo: form.photo.trim() || null,
+        photo,
       });
       setReceipt(report);
       await recordReport(report);
@@ -87,13 +89,13 @@ export default function GroundReportScreen({ navigation }) {
     } finally { lock.current = false; setSending(false); }
   }
   function reset() {
-    setReceipt(null); setForm(EMPTY); setLocation(null); setErrors({}); setFailure(''); setLocationError(''); setSettings(false);
+    setReceipt(null); setForm(EMPTY); setPhotoAsset(null); setLocation(null); setErrors({}); setFailure(''); setLocationError(''); setSettings(false);
   }
   return <SafeAreaView style={s.safe} edges={['left', 'right', 'bottom']}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <View style={s.hero}>
-          <View style={s.brandRow}><View style={s.brandMark}><Ionicons name="shield-checkmark-outline" size={24} color="white" /></View><View><Text style={s.brand}>DISASTER CONNECT</Text><Text style={s.brandSub}>Citizen reporting</Text></View></View>
+          <View style={s.brandRow}><View style={s.brandMark}><Ionicons name="shield-checkmark-outline" size={24} color="white" /></View><View><Text style={s.brand}>RESQCONNECT</Text><Text style={s.brandSub}>Citizen reporting</Text></View></View>
           <Text style={s.eyebrow}>YOUR COMMUNITY. YOUR VOICE.</Text>
           <Text style={s.heroTitle}>{'Report what\nyou see.'}</Text>
           <Text style={s.heroDescription}>Share information from the ground to help response teams understand the situation.</Text>
@@ -132,7 +134,7 @@ export default function GroundReportScreen({ navigation }) {
               <ErrorText text={locationError || errors.location} />
               {settings && <Pressable accessibilityRole="button" onPress={() => Linking.openSettings().catch(() => setLocationError('Open your phone settings to enable location access.'))}><Text style={s.link}>Open permission settings</Text></Pressable>}
             </View>
-            <PhotoReference value={form.photo} onChange={value => update('photo', value)} error={errors.photo} disabled={busy} />
+            <PhotoReference value={photoAsset} onChange={value => { setPhotoAsset(value); update('photo', ''); }} error={errors.photo} disabled={busy} />
             <View style={s.notice}><Ionicons name="information-circle-outline" size={21} color="#697F87" /><Text style={s.noticeText}>Share accurate details and keep a safe distance from the incident. Reports are initially pending review.</Text></View>
             {!!failure && <View style={s.errorBanner}><ErrorText text={failure} /></View>}
             <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy: sending }} disabled={busy} onPress={submit} style={({ pressed }) => [s.primary, (busy || pressed) && s.disabled]}>{sending ? <ActivityIndicator color="white" /> : <Ionicons name="paper-plane-outline" size={20} color="white" />}<Text style={s.primaryText}>{sending ? 'Submitting report...' : 'Submit ground report'}</Text><Ionicons name="arrow-forward" size={19} color="white" /></Pressable>

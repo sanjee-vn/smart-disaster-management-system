@@ -24,7 +24,7 @@ export default function useResponseMonitoringData(incidentId) {
     }
   }, [incidentId])
 
-  useEffect(() => { queueMicrotask(load) }, [load])
+  useEffect(() => { queueMicrotask(load); const timer = setInterval(load, 10000); return () => clearInterval(timer) }, [load])
   const refresh = async () => { setLoading(true); await load() }
   return { ...data, loading, error, lastRefreshed, refresh }
 }

@@ -1,7 +1,7 @@
 import { MapPin } from 'lucide-react';
 
 export function Brand() {
-  return <div className="brand"><div className="brand-mark"><span /><span /><span /></div><div><strong>SDEWS</strong><small>Smart Disaster Early-Warning<br />& Emergency Coordination System</small></div></div>
+  return <div className="brand"><div className="brand-mark"><span /><span /><span /></div><div><strong>ResQConnect</strong><small>Smart Disaster Early-Warning<br />& Emergency Coordination System</small></div></div>
 }
 
 export function MapPanel({ compact = false, pins = 5 }) {
