@@ -17,7 +17,7 @@ export default function ResponseOperationsDashboard() {
     : entryArea === 'monitoring'
       ? { eyebrow: 'Live Operational Oversight', title: 'Response Monitoring', subtitle: 'Select an active incident to monitor teams, shelters, distributions and resolution eligibility.' }
       : { eyebrow: 'Emergency Response Coordination', title: 'Response Operations', subtitle: 'Coordinate emergency response teams, shelters and relief resources.' }
-  const { incidents, assignments, teams, shelters, distributions, inventory, deliveryResources, errors, loading, retry } = useResponseOperationsDashboard(entryArea === 'resources')
+  const { incidents, assignments, requests, teams, shelters, distributions, inventory, deliveryResources, errors, loading, retry } = useResponseOperationsDashboard(entryArea === 'resources')
   if (loading) return <DashboardLayout activeSection="overview" breadcrumb="Operations / Response Operations" role="Response Officer"><div className="content"><div className="state skeleton" aria-label="Loading response operations" /></div></DashboardLayout>
 
   const activeIncidents = incidents.filter((incident) => incident.status !== 'RESOLVED')
@@ -25,8 +25,9 @@ export default function ResponseOperationsDashboard() {
     activeIncidents: activeIncidents.length,
     plannedResponses: assignments.filter((assignment) => assignment.status === 'PLANNED').length,
     availableTeams: teams.filter((team) => team.status === 'AVAILABLE').length,
-    deployedTeams: teams.filter((team) => team.status === 'DEPLOYED').length,
     activeShelters: shelters.filter((shelter) => shelter.status?.toLowerCase() !== 'inactive').length,
+    pendingRequests: requests.filter((request) => request.status === 'PENDING').length,
+    approvedRequests: requests.filter((request) => request.status === 'APPROVED').length,
   }
   const hasErrors = Object.keys(errors).length > 0
 

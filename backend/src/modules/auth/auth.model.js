@@ -3,6 +3,6 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 100 },
   email: { type: String, required: true, lowercase: true, trim: true, unique: true, maxlength: 254 },
   passwordHash: { type: String, required: true, select: false },
-  role: { type: String, enum: ['CITIZEN'], default: 'CITIZEN' },
+  role: { type: String, enum: ['CITIZEN', 'RESPONSE_OPERATIONS_OFFICER', 'DISTRICT_RESOURCE_COORDINATION_OFFICER', 'STAFF_OFFICER'], default: 'CITIZEN' },
 }, { timestamps: true });
 module.exports = mongoose.model('User', userSchema);

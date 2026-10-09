@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getDistributions, getShelters } from '../services/resourceCoordinationService'
-import { getAssignments, getIncident } from '../services/responseOperationsService'
+import { getAssignments, getIncident, getOperationalRequests } from '../services/responseOperationsService'
 
 export default function useResponseMonitoringData(incidentId) {
-  const [data, setData] = useState({ incident: null, assignment: null, shelters: [], distributions: [] })
+  const [data, setData] = useState({ incident: null, assignment: null, requests: [], shelters: [], distributions: [] })
   const [loading, setLoading] = useState(Boolean(incidentId))
   const [error, setError] = useState('')
   const [lastRefreshed, setLastRefreshed] = useState(null)
@@ -11,10 +11,10 @@ export default function useResponseMonitoringData(incidentId) {
   const load = useCallback(async () => {
     if (!incidentId) return
     try {
-      const [incident, assignments, shelters, distributions] = await Promise.all([
-        getIncident(incidentId), getAssignments({ incidentId }), getShelters(incidentId), getDistributions(incidentId),
+      const [incident, assignments, requests, shelters, distributions] = await Promise.all([
+        getIncident(incidentId), getAssignments({ incidentId }), getOperationalRequests({ incidentId }), getShelters(incidentId), getDistributions(incidentId),
       ])
-      setData({ incident, assignment: assignments[0] || null, shelters, distributions })
+      setData({ incident, assignment: assignments[0] || null, requests, shelters, distributions })
       setLastRefreshed(new Date())
       setError('')
     } catch (requestError) {

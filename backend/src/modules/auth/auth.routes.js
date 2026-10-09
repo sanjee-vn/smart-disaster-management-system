@@ -6,5 +6,6 @@ const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, skipSuccessfulR
 router.post('/register', limiter, controller.register);
 router.post('/login', limiter, controller.login);
 router.get('/me', requireAuth, controller.me);
+router.get('/staff/operational-updates', requireAuth, controller.staffOperationalUpdates);
 router.post('/logout', requireAuth, controller.logout);
 module.exports = router;

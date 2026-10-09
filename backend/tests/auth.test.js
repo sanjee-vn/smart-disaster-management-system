@@ -19,6 +19,19 @@ test('registration trims names and normalizes emails without altering passwords 
   assert.equal(data.name, 'Test Citizen'); assert.equal(data.email, valid.email); assert.equal(data.password, valid.password); assert.equal(data.role, undefined);
   assert.deepEqual(validateAuth(valid).errors, {});
 });
+test('public mobile registration accepts only the explicit Staff Officer role', () => {
+  assert.equal(validateAuth({ ...valid, role: 'STAFF_OFFICER' }, true).data.role, 'STAFF_OFFICER');
+  assert.equal(validateAuth({ ...valid, role: 'RESPONSE_OPERATIONS_OFFICER' }, true).data.role, undefined);
+  assert.equal(validateAuth({ ...valid, role: 'DISTRICT_RESOURCE_COORDINATION_OFFICER' }, true).data.role, undefined);
+});
+test('staff registration persists STAFF_OFFICER without exposing privileged web roles', async t => {
+  let created;
+  t.mock.method(User, 'create', async data => { created = { ...data, _id: id, createdAt: new Date() }; return created; });
+  const result = await service.register({ ...valid, role: 'STAFF_OFFICER' });
+  assert.equal(created.role, 'STAFF_OFFICER');
+  assert.equal(result.role, 'STAFF_OFFICER');
+  assert.equal(result.passwordHash, undefined);
+});
 test('auth rejects non-object bodies', () => {
   for (const input of [null, undefined, [], 'text']) assert.ok(validateAuth(input).errors.body);
 });
@@ -33,6 +46,7 @@ test('user model requires fields and protects password hashes', async () => {
   await assert.rejects(new User({}).validate());
   const user = new User({ name: valid.name, email: valid.email, passwordHash: 'hashed' });
   await user.validate(); assert.equal(user.role, 'CITIZEN'); assert.equal(User.schema.path('passwordHash').options.select, false);
+  assert.deepEqual(User.schema.path('role').enumValues, ['CITIZEN', 'RESPONSE_OPERATIONS_OFFICER', 'DISTRICT_RESOURCE_COORDINATION_OFFICER', 'STAFF_OFFICER']);
   assert.equal(User.schema.path('email').options.unique, true);
   assert.equal(Session.schema.path('expiresAt').options.index.expires, 0);
 });
