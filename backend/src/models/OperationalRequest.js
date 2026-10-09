@@ -15,6 +15,7 @@ const operationalRequestSchema = new mongoose.Schema({
   reviewedAt: { type: Date, default: null },
   rejectionReason: { type: String, trim: true, maxlength: 500, default: null },
   approvedTeamId: { type: mongoose.Schema.Types.ObjectId, ref: "ResponseTeam", default: null },
+  staffAcceptedAt: { type: Date, default: null },
   dispatchedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
   deliveredAt: { type: Date, default: null },

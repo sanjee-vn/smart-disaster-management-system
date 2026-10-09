@@ -34,7 +34,10 @@ export default function DistrictResourceDashboard({ requestsOnly = false }) {
   }, [])
 
   useEffect(() => {
-    if (requestsOnly) queueMicrotask(loadRequests)
+    if (!requestsOnly) return undefined
+    queueMicrotask(loadRequests)
+    const timer = setInterval(loadRequests, 10000)
+    return () => clearInterval(timer)
   }, [loadRequests, requestsOnly])
 
   const review = async (request, decision) => {

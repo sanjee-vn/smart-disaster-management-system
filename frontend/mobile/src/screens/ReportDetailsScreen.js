@@ -14,7 +14,7 @@ export default function ReportDetailsScreen({ route, navigation }) {
   if (loading && !report) return <Screen insetTop={false} title="Report details"><LoadingState /></Screen>;
   if (!report) return <Screen insetTop={false} title="Report details"><EmptyState title="Report unavailable" message="This report is not saved on this device." action="My Reports" onPress={() => navigation.popTo('MainTabs', { screen: 'Reports' })} /></Screen>;
   const category = DISASTERS[report.disasterType];
-  const photoUrl = report.photo && /^https?:\/\//i.test(report.photo) ? report.photo : null;
+  const photoUrl = report.photo?.startsWith('/uploads/') ? `${(process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')}${report.photo}` : report.photo && /^https?:\/\//i.test(report.photo) ? report.photo : null;
   return <Screen insetTop={false} title="Report details" subtitle="Your incident submission">
     <Card><View style={ui.row}><View style={styles.category}><Icon name={category.icon} color={category.color} size={28} /></View><Text style={ui.overline}>{report.disasterType.toUpperCase()}</Text></View><Text style={styles.title}>{report.title}</Text><View style={{ alignSelf: 'flex-start' }}><StatusBadge status={report.status} /></View></Card>
     <Notice>This status is synchronized with the latest DMC review.</Notice>

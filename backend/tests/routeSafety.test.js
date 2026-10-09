@@ -27,6 +27,7 @@ const expectedWrites = [
   "POST /api/auth/login",
   "POST /api/auth/logout",
   "POST /api/reports",
+  "POST /api/reports/photo",
   "PATCH /api/reports/:id/review",
   "POST /api/reports/:id/hazard",
   "POST /api/resource-coordination/distributions",
@@ -42,6 +43,7 @@ const expectedWrites = [
   "PATCH /api/response-operations/operational-requests/:requestId/review",
   "POST /api/response-operations/operational-requests/:requestId/dispatch",
   "POST /api/response-operations/operational-requests/:requestId/deliver",
+  "POST /api/response-operations/operational-requests/:requestId/accept",
 ].sort();
 
 for (const [prefix, router] of routers) {

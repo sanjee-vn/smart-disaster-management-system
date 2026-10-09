@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { OfficerSessionContext } from '../context/OfficerSessionContext'
+import { useContext, useState } from 'react'
 import { Activity, Bell, ChevronDown, ChevronRight, CircleHelp, ClipboardCheck, ClipboardList, FileText, House, Layers3, LogOut, Menu, MessageSquare, PackageCheck, Settings, ShieldCheck, Siren, Truck, Users, Warehouse } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Brand } from './ui.jsx'
@@ -86,6 +87,17 @@ export default function SdewsLayout({ children, role = 'Assessment Officer', bre
   const [mobileMenu, setMobileMenu] = useState(false)
   const active = activeNavigation || activeLabel(pathname, search)
   const initials = roleInitials(role)
+  const accountSession = useContext(OfficerSessionContext)
+  const accountRole = String(accountSession?.user?.role || '').toLowerCase()
+  const accountLabels = {
+    dmc_officer: ['DMC Officer', 'DMC', 'Disaster Management Centre'],
+    duty_officer: ['Duty Officer', 'DO', 'National Operations'],
+    district_resource_officer: ['District / Resource Coordination Officer', 'DR', 'Resource Coordination'],
+    district_resource_coordination_officer: ['District / Resource Coordination Officer', 'DR', 'Resource Coordination'],
+    response_officer: ['Response Officer', 'RO', 'Response Operations'],
+    response_operations_officer: ['Response Officer', 'RO', 'Response Operations'],
+  }
+  const [accountLabel, accountInitials, accountDepartment] = accountLabels[accountRole] || ['Officer', 'OF', 'Operations']
   const incidentId = incidentIdFromPath(pathname)
   const isResourceOfficer = role.includes('Resource Coordination') || role === 'District Resource Officer'
   const isResponseOfficer = !isResourceOfficer && (role.includes('Response') || role === 'Response Officer')
@@ -102,8 +114,8 @@ export default function SdewsLayout({ children, role = 'Assessment Officer', bre
   }
 
   return <div className="app-shell">
-    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{visibleNavigation.map(({ label, icon: Icon, to }) => <button key={label} type="button" className={`nav-item ${active === label ? 'nav-active' : ''}`} disabled={!to} title={!to ? 'Select an incident from the dashboard first' : undefined} onClick={() => to && goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div>{onProfile && <button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button>}<button className="user-card" onClick={signOut}><span className="avatar"><LogOut size={14}/></span><span><b>Sign out</b><small>{role}</small></span></button></div></aside>
+    <aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">OPERATIONS</div><nav>{visibleNavigation.map(({ label, icon: Icon, to }) => <button key={label} type="button" className={`nav-item ${active === label ? 'nav-active' : ''}`} disabled={!to} title={!to ? 'Select an incident from the dashboard first' : undefined} onClick={() => to && goTo(to)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warningCount > 0 && <small>{warningCount}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>All systems operational</span></div>{onProfile && <button className="user-card" onClick={onProfile}><span className="avatar">{initials}</span><span><b>{role}</b><small>DMC · National Operations</small></span><ChevronDown size={15}/></button>}<button className="user-card" onClick={signOut}><span className="avatar"><LogOut size={14}/></span><span><b>Sign out</b><small>{accountLabel}</small></span></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
-    <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{breadcrumb || active}</b></div><div className="topbar-actions"><span className="topbar-date">Tuesday, 07 October 2026</span><button className="notification-button" aria-label="Notifications" onClick={onNotification}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">{initials}</span><span><b>{role}</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className={`content-area ${contentClassName}`.trim()}>{children}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Data stored locally for this prototype <i className="online-dot"/></span></footer></div></main>
+    <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{breadcrumb || active}</b></div><div className="topbar-actions"><span className="topbar-date">Tuesday, 07 October 2026</span><button className="notification-button" aria-label="Notifications" onClick={onNotification}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">{accountInitials}</span><span><b>{accountLabel}</b><small>{accountDepartment}</small></span><ChevronDown size={14}/></div></div></header><div className={`content-area ${contentClassName}`.trim()}>{children}<footer className="page-footer"><span>ResQConnect · Smart Disaster Early-Warning System</span><span>Data stored locally for this prototype <i className="online-dot"/></span></footer></div></main>
   </div>
 }

@@ -15,6 +15,6 @@ export default function useOperationalUpdates() {
       setState(current => ({ ...current, loading: false, refreshing: false, error: error.response?.data?.error?.message || error.response?.data?.message || 'Unable to load operational updates.' }));
     }
   }, []);
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => { void load(); const timer = setInterval(() => { void load(true); }, 10000); return () => clearInterval(timer); }, [load]));
   return { ...state, retry: () => load(true) };
 }

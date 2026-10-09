@@ -22,6 +22,7 @@ router.get("/operational-requests", requestController.list);
 router.post("/operational-requests", requireRole("response_officer"), requestController.create);
 router.patch("/operational-requests/:requestId/review", requireRole("duty_officer", "district_resource_officer"), requestController.review);
 router.post("/operational-requests/:requestId/dispatch", requireRole("response_officer"), requestController.dispatch);
+router.post("/operational-requests/:requestId/accept", requireRole("staff_officer"), requestController.acceptByStaff);
 router.post("/operational-requests/:requestId/deliver", requireRole("staff_officer"), requestController.deliverByStaff);
 
 module.exports = router;

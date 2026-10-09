@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icon } from './UI';
 export function Brand({ large = false }) {
-  return <View style={a.brand}><View style={[a.mark, large && a.largeMark]}><Icon name="shield-checkmark-outline" size={large ? 64 : 30} color="#135E42" /></View><Text style={[a.brandName, large && { fontSize: 28 }]}>Disaster Connect</Text></View>;
+  return <View style={a.brand}><View style={[a.mark, large && a.largeMark]}><Icon name="shield-checkmark-outline" size={large ? 64 : 30} color="#135E42" /></View><Text style={[a.brandName, large && { fontSize: 28 }]}>ResQConnect</Text></View>;
 }
 export function AuthLayout({ children, title, subtitle }) {
   return <LinearGradient colors={['#CEE8D1', '#EDF2EF']} style={a.flex}><SafeAreaView style={a.flex}><KeyboardAvoidingView style={a.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={a.page}><Brand /><View style={a.heading}><Text style={a.title}>{title}</Text><Text style={a.subtitle}>{subtitle}</Text></View>{children}</ScrollView></KeyboardAvoidingView></SafeAreaView></LinearGradient>;

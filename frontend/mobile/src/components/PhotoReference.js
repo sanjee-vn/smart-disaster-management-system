@@ -1,16 +1,29 @@
-import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Card, Icon, ui } from './UI';
 import { colors as c } from '../theme';
-import { isPhotoUrl } from '../utils/reportValidation.cjs';
 
 export default function PhotoReference({ value, onChange, error, disabled }) {
-  const [preview, setPreview] = useState('');
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => { setPreview(isPhotoUrl(value.trim()) ? value.trim() : ''); setFailed(false); }, 600);
-    return () => clearTimeout(timer);
-  }, [value]);
-  return <Card><View style={ui.row}><Icon name="image-outline" /><Text style={ui.sectionTitle}>Photo · optional</Text></View><Text style={ui.muted}>Have a photo hosted online? Attach its link. Camera and gallery uploads are not available yet.</Text><TextInput accessibilityLabel="Optional photo URL" placeholder="https://example.com/incident.jpg" placeholderTextColor={c.muted} value={value} onChangeText={onChange} editable={!disabled} autoCapitalize="none" autoCorrect={false} keyboardType="url" maxLength={2048} style={styles.input} />{error && <Text style={styles.error}>{error}</Text>}{preview && !failed && <Image accessibilityLabel="Attached photo preview" source={{ uri: preview }} style={styles.photo} resizeMode="cover" onError={() => setFailed(true)} />}{preview && failed && <Text style={ui.muted}>Preview unavailable. Confirm that the link points to an accessible image.</Text>}{!!value && <Pressable disabled={disabled} accessibilityRole="button" onPress={() => onChange('')} style={styles.remove}><Text style={ui.link}>Remove photo link</Text></Pressable>}</Card>;
+  const [failure, setFailure] = useState('');
+  const [picking, setPicking] = useState(false);
+  async function choose(camera) {
+    if (disabled || picking) return;
+    setPicking(true); setFailure('');
+    try {
+      if (camera) {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) { setFailure('Allow camera access in your phone settings to take a photo.'); return; }
+      }
+      const options = { mediaTypes: ['images'], allowsEditing: true, quality: 0.7 };
+      const result = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (asset.fileSize > 5 * 1024 * 1024) { setFailure('Choose a photo smaller than 5 MB.'); return; }
+      onChange(asset);
+    } catch { setFailure('Unable to open photos. Please try again.'); }
+    finally { setPicking(false); }
+  }
+  return <Card><View style={ui.row}><Icon name="image-outline"/><Text style={ui.sectionTitle}>Photo (optional)</Text></View><Text style={ui.muted}>Attach a photo from your gallery or take one. JPEG, PNG or WebP, up to 5 MB.</Text><View style={styles.buttons}>{[['Choose photo', false], ['Take photo', true]].map(([label, camera]) => <Pressable key={label} accessibilityRole="button" disabled={disabled || picking} onPress={() => choose(camera)} style={styles.button}><Text style={ui.link}>{label}</Text></Pressable>)}</View>{!!(error || failure) && <Text style={styles.error}>{error || failure}</Text>}{value && <><Image accessibilityLabel="Selected incident photo" source={{ uri: value.uri }} style={styles.photo}/><Pressable accessibilityRole="button" disabled={disabled || picking} onPress={() => { onChange(null); setFailure(''); }} style={styles.button}><Text style={ui.link}>Remove photo</Text></Pressable></>}</Card>;
 }
-const styles = StyleSheet.create({ input: { minHeight: 50, padding: 13, backgroundColor: '#F8FAFA', color: c.text, borderColor: c.border, borderWidth: 1, borderRadius: 12, fontSize: 13 }, photo: { width: '100%', height: 180, borderRadius: 12 }, error: { color: c.error, fontSize: 12 }, remove: { minHeight: 44, justifyContent: 'center' } });
+const styles = StyleSheet.create({ buttons: { flexDirection: 'row', gap: 12 }, button: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 12, borderWidth: 1, borderColor: c.border, borderRadius: 12 }, photo: { width: '100%', height: 180, borderRadius: 12 }, error: { color: c.error, fontSize: 12 } });
