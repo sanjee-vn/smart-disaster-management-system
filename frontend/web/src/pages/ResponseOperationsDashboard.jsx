@@ -25,7 +25,6 @@ export default function ResponseOperationsDashboard() {
     activeIncidents: activeIncidents.length,
     plannedResponses: assignments.filter((assignment) => assignment.status === 'PLANNED').length,
     availableTeams: teams.filter((team) => team.status === 'AVAILABLE').length,
-    deployedTeams: teams.filter((team) => team.status === 'DEPLOYED').length,
     activeShelters: shelters.filter((shelter) => shelter.status?.toLowerCase() !== 'inactive').length,
     pendingRequests: requests.filter((request) => request.status === 'PENDING').length,
     approvedRequests: requests.filter((request) => request.status === 'APPROVED').length,

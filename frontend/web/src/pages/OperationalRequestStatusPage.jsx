@@ -12,7 +12,7 @@ const displayTime = (value) => value ? new Date(value).toLocaleString('en-LK') :
 const statusMessage = (request, teams) => {
   if (request.status === 'PENDING') return 'Waiting for District Resource Officer review'
   if (request.status === 'APPROVED') {
-    if (!request.approvedTeam) return 'Approved — waiting for a suitable available team assignment'
+    if (!request.approvedTeam) return 'Approved — awaiting team assignment'
     const liveTeam = teams.find((team) => team.id === request.approvedTeam.id) || request.approvedTeam
     return isSuitableOperationalTeam(liveTeam, request)
       ? 'Approved with assigned team — ready for dispatch'
@@ -20,7 +20,7 @@ const statusMessage = (request, teams) => {
   }
   if (request.status === 'ACCEPTED') return request.approvedTeam ? 'Accepted by staff and team assigned — ready for dispatch' : 'Accepted by staff — waiting for District team assignment'
   if (request.status === 'REJECTED') return `Rejected — ${request.rejectionReason || 'reason not available'}`
-  if (request.status === 'DISPATCHED') return 'Dispatched — team deployed'
+  if (request.status === 'DISPATCHED') return 'Dispatched — team assigned to this incident; shared availability remains AVAILABLE'
   if (request.status === 'DELIVERED') return 'Marked delivered by staff'
   if (request.status === 'COMPLETED') return 'Response completed'
   return 'Status unavailable'

@@ -32,7 +32,7 @@ const formatTeam = (team) => ({
   id: team._id.toString(), name: team.name,
   agency: team.agencyId ? formatAgency(team.agencyId) : null,
   type: team.type, currentLocation: team.currentLocation || null,
-  capacity: team.capacity ?? null, status: team.status,
+  capacity: team.capacity ?? null, status: "AVAILABLE",
 });
 
 const getWarning = async (warningId) => {
@@ -94,10 +94,8 @@ const getTeams = async ({ agencyId, status, type }) => {
     if (!mongoose.isValidObjectId(agencyId)) throw createError("Invalid agency ID", 400, "INVALID_AGENCY_ID");
     filters.agencyId = agencyId;
   }
-  if (status) {
-    if (!["AVAILABLE", "DEPLOYED", "UNAVAILABLE"].includes(status)) throw createError("Invalid team status", 400, "INVALID_TEAM_STATUS");
-    filters.status = status;
-  }
+  if (status && status !== "AVAILABLE") throw createError("Response teams remain AVAILABLE in the concurrent dispatch workflow", 400, "INVALID_TEAM_STATUS");
+  if (status === "AVAILABLE") filters.status = status;
   if (type) filters.type = type;
   return (await repository.findTeams(filters)).map(formatTeam);
 };
@@ -106,7 +104,7 @@ const markTeamAvailable = async (teamId) => {
   if (!mongoose.isValidObjectId(teamId)) throw createError("Response team not found", 404, "RESPONSE_TEAM_NOT_FOUND");
   const current = await repository.findTeamById(teamId);
   if (!current) throw createError("Response team not found", 404, "RESPONSE_TEAM_NOT_FOUND");
-  if (current.status !== "DEPLOYED") throw createError("Only a deployed team can be marked available", 409, "TEAM_NOT_DEPLOYED");
+  if (current.status === "AVAILABLE") return formatTeam(current);
   const updated = await repository.releaseDeployedTeam(teamId);
   if (!updated) throw createError("Team availability changed before it could be released", 409, "TEAM_STATUS_CONFLICT");
   return formatTeam(await repository.findTeamById(teamId));
@@ -190,10 +188,6 @@ const dispatchResponseAssignment = async (payload = {}) => {
 
       const teams = await repository.findTeamsForDispatch(teamIds, session);
       if (teams.length !== teamIds.length) throw createError("One or more response teams were not found", 404, "RESPONSE_TEAM_NOT_FOUND");
-      if (teams.some((team) => team.status !== "AVAILABLE")) throw createError("One or more selected teams are no longer available", 409, "TEAM_UNAVAILABLE");
-
-      const deployment = await repository.deployAvailableTeams(teamIds, session);
-      if (deployment.modifiedCount !== teamIds.length) throw createError("One or more selected teams are no longer available", 409, "TEAM_UNAVAILABLE");
 
       const now = new Date();
       const update = { teamIds, priority, destination, instructions, requiredCapabilities, eta, status: "DISPATCHED", dispatchedAt: now };
@@ -249,14 +243,7 @@ const resolveResponse = async (incidentId) => {
 
       const teamIds = assignment.teamIds || [];
       const teams = await repository.findTeamsForResolution(teamIds, session);
-      if (teams.length !== teamIds.length || teams.some((team) => !["DEPLOYED", "AVAILABLE"].includes(team.status))) {
-        throw createError("One or more assigned teams are in an incompatible state", 409, "TEAM_STATE_CONFLICT");
-      }
-      const deployedTeamIds = teams.filter((team) => team.status === "DEPLOYED").map((team) => team._id);
-      if (deployedTeamIds.length > 0) {
-        const release = await repository.releaseDeployedTeams(deployedTeamIds, session);
-        if (release.modifiedCount !== deployedTeamIds.length) throw createError("Assigned team state changed during resolution", 409, "TEAM_STATE_CONFLICT");
-      }
+      if (teams.length !== teamIds.length) throw createError("One or more assigned teams no longer exist", 409, "TEAM_STATE_CONFLICT");
 
       const completedAssignment = await repository.completeAssignment(assignment._id, session);
       if (!completedAssignment) throw createError("Response assignment is no longer resolvable", 409, "RESPONSE_NOT_RESOLVABLE");
@@ -269,7 +256,7 @@ const resolveResponse = async (incidentId) => {
         incidentStatus: resolvedIncident.status,
         responseId: completedAssignment.responseId,
         responseStatus: completedAssignment.status,
-        releasedTeams: deployedTeamIds.length,
+        releasedTeams: 0,
       };
     });
   } catch (error) {

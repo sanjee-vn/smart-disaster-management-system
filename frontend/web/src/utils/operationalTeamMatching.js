@@ -10,6 +10,5 @@ export const teamMatchesCapability = (team, capability) => {
 }
 
 export const isSuitableOperationalTeam = (team, request) => Boolean(team && request)
-  && team.status === 'AVAILABLE'
   && Number(team.capacity || 0) >= Number(request.requestedPersonnelCount || 0)
   && teamMatchesCapability(team, request.capability)

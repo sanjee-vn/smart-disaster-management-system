@@ -5,7 +5,6 @@ const cards = [
   { key: 'activeIncidents', label: 'Active Incidents', icon: ShieldAlert },
   { key: 'plannedResponses', label: 'Awaiting / Planned Response', icon: Clock3 },
   { key: 'availableTeams', label: 'Teams Available', icon: Users },
-  { key: 'deployedTeams', label: 'Teams Deployed', icon: Users },
   { key: 'activeShelters', label: 'Active Shelters', icon: Building2 },
   { key: 'pendingRequests', label: 'Pending Requests', icon: Clock3 },
   { key: 'approvedRequests', label: 'Approved Requests', icon: Users },

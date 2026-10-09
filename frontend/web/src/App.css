@@ -929,9 +929,6 @@
 .team-release-card > div:last-child { justify-items: end; }
 .team-release-card strong { color: #1f4335; }
 .team-release-card span, .team-release-card small { color: #6d8178; }
-.request-team-unavailable strong, .request-team-unavailable small, .request-team-availability-help { display: block; }
-.request-team-unavailable strong { color: #a24d3f; font-size: 9px; }
-.request-team-unavailable small, .request-team-availability-help { margin-top: 3px; color: #8b716c; font-size: 8px; white-space: normal; }
 .component03-fatal-state { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 30px; background: #f3f6f4; color: #8f3e33; text-align: center; }
 .component03-fatal-state h1 { margin: 0; color: #293d34; font-size: 22px; }
 .component03-fatal-state p { max-width: 620px; margin: 0; color: #68786f; }

@@ -33,9 +33,6 @@ const rejectPending = (id, reviewer, reason, reviewedAt, session) => Operational
   { _id: id, status: "PENDING" }, { $set: { status: "REJECTED", reviewedBy: reviewer, reviewedAt, rejectionReason: reason, approvedTeamId: null } },
   { new: true, runValidators: true, session }
 );
-const deployTeam = (teamId, session) => ResponseTeam.findOneAndUpdate(
-  { _id: teamId, status: "AVAILABLE" }, { $set: { status: "DEPLOYED" } }, { new: true, session }
-);
 const findAssignment = (incidentId, session) => ResponseAssignment.findOne({ incidentId, status: { $in: ["PLANNED", "DISPATCHED", "IN_PROGRESS"] } }).sort({ createdAt: -1 }).session(session);
 const createAssignment = async (data, session) => (await ResponseAssignment.create([data], { session }))[0];
 const updateAssignmentForDispatch = (id, data, teamId, capabilities, session) => ResponseAssignment.findOneAndUpdate(
@@ -54,11 +51,6 @@ const markDelivered = (id, deliveredAt, session) => OperationalRequest.findOneAn
   { $set: { status: "DELIVERED", deliveredAt } },
   { new: true, runValidators: true, session }
 );
-const releaseDeployedTeam = (teamId, session) => ResponseTeam.findOneAndUpdate(
-  { _id: teamId, status: "DEPLOYED" },
-  { $set: { status: "AVAILABLE" } },
-  { new: true, session }
-);
 const countOutstanding = (incidentId, session) => OperationalRequest.countDocuments({ incidentId, status: { $in: ["PENDING", "APPROVED", "ACCEPTED"] } }).session(session);
 const completeDispatchedForIncident = async (incidentId, deliveredAt, session) => {
   const result = await OperationalRequest.updateMany(
@@ -69,4 +61,4 @@ const completeDispatchedForIncident = async (incidentId, deliveredAt, session) =
   return result;
 };
 
-module.exports = { findAll, findByRequestId, create, runInTransaction, findForUpdate, findTeam, approvePending, reassignApproved, assignTeamToReviewedRequest, rejectPending, deployTeam, findAssignment, createAssignment, updateAssignmentForDispatch, progressIncident, markDispatched, markDelivered, releaseDeployedTeam, completeDispatchedForIncident, countOutstanding };
+module.exports = { findAll, findByRequestId, create, runInTransaction, findForUpdate, findTeam, approvePending, reassignApproved, assignTeamToReviewedRequest, rejectPending, findAssignment, createAssignment, updateAssignmentForDispatch, progressIncident, markDispatched, markDelivered, completeDispatchedForIncident, countOutstanding };

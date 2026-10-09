@@ -17,9 +17,9 @@ async function main() {
     assert.equal(result.status, "AVAILABLE");
 
     repository.findTeamById = async () => available;
-    await assert.rejects(() => service.markTeamAvailable(teamId), (error) => error.code === "TEAM_NOT_DEPLOYED" && error.status === 409);
+    assert.equal((await service.markTeamAvailable(teamId)).status, "AVAILABLE", "making an available team available is idempotent");
     await assert.rejects(() => service.markTeamAvailable("invalid"), (error) => error.code === "RESPONSE_TEAM_NOT_FOUND" && error.status === 404);
-    console.log("Response team availability tests passed: only DEPLOYED teams transition to AVAILABLE.");
+    console.log("Response team availability tests passed: team availability is persistent and idempotent.");
   } finally {
     repository.findTeamById = originalFind;
     repository.releaseDeployedTeam = originalRelease;

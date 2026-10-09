@@ -57,6 +57,7 @@ const seed = async () => {
         { upsert: true, returnDocument: "after", runValidators: true }
       );
     }
+    await ResponseTeam.updateMany({}, { $set: { status: "AVAILABLE" } });
     const plannedTeamNames = ["DMC Coordination Team-01", "Army Rescue Team-01", "Medical Emergency Team-01"];
     const plannedTeams = await ResponseTeam.find({ name: { $in: plannedTeamNames } }).lean();
     await ResponseAssignment.findOneAndUpdate(

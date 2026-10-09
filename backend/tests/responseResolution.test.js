@@ -8,7 +8,7 @@ const ids = {
   incident: new mongoose.Types.ObjectId(), assignment: new mongoose.Types.ObjectId(),
   team1: new mongoose.Types.ObjectId(), team2: new mongoose.Types.ObjectId(), unrelated: new mongoose.Types.ObjectId(),
 };
-const methods = ["runInTransaction", "findIncidentForDispatch", "findCurrentAssignmentByIncident", "findAnyAssignmentByIncident", "countOutstandingDistributions", "countOutstandingOperationalRequests", "findTeamsForResolution", "releaseDeployedTeams", "completeAssignment", "resolveIncident"];
+const methods = ["runInTransaction", "findIncidentForDispatch", "findCurrentAssignmentByIncident", "findAnyAssignmentByIncident", "countOutstandingDistributions", "countOutstandingOperationalRequests", "findTeamsForResolution", "completeAssignment", "resolveIncident"];
 const originals = Object.fromEntries(methods.map((name) => [name, repository[name]]));
 const originalCompleteRequests = operationalRequestRepository.completeDispatchedForIncident;
 
@@ -39,14 +39,6 @@ const reset = () => {
   repository.countOutstandingDistributions = async () => state.outstanding;
   repository.countOutstandingOperationalRequests = async () => state.outstandingRequests;
   repository.findTeamsForResolution = async (teamIds) => state.teams.filter((team) => teamIds.map(String).includes(team._id.toString()));
-  repository.releaseDeployedTeams = async (teamIds) => {
-    let modifiedCount = 0;
-    state.teams = state.teams.map((team) => {
-      if (teamIds.map(String).includes(team._id.toString()) && team.status === "DEPLOYED") { modifiedCount += 1; return { ...team, status: "AVAILABLE" }; }
-      return team;
-    });
-    return { modifiedCount };
-  };
   repository.completeAssignment = async () => {
     if (!["DISPATCHED", "IN_PROGRESS"].includes(state.assignment.status)) return null;
     state.assignment.status = "COMPLETED";
@@ -68,9 +60,9 @@ const run = async () => {
   assert.equal(result.responseStatus, "COMPLETED");
   assert.equal(state.incident.status, "RESOLVED");
   assert.equal(state.assignment.status, "COMPLETED");
-  assert.equal(state.teams.find((team) => team._id.equals(ids.team1)).status, "AVAILABLE");
-  assert.equal(state.teams.find((team) => team._id.equals(ids.team2)).status, "AVAILABLE");
-  assert.equal(state.teams.find((team) => team._id.equals(ids.unrelated)).status, "DEPLOYED", "unrelated team must remain unchanged");
+  assert.equal(state.teams.find((team) => team._id.equals(ids.team1)).status, "DEPLOYED", "resolution does not change shared team status");
+  assert.equal(state.teams.find((team) => team._id.equals(ids.team2)).status, "DEPLOYED", "resolution does not change shared team status");
+  assert.equal(state.teams.find((team) => team._id.equals(ids.unrelated)).status, "DEPLOYED", "team status remains unchanged");
 
   reset(); state.incident.status = "RESOLVED";
   await expectCode(() => service.resolveResponse("INC-TEST-01"), "INCIDENT_ALREADY_RESOLVED");
@@ -95,7 +87,7 @@ const run = async () => {
   reset();
   repository.runInTransaction = async () => { throw new Error("Transaction numbers are only allowed on a replica set member or mongos"); };
   await expectCode(() => service.resolveResponse("INC-TEST-01"), "TRANSACTION_UNAVAILABLE");
-  console.log("Response resolution tests passed: validation, scoped team release, rollback, and transaction availability.");
+  console.log("Response resolution tests passed: validation, shared team status, rollback, and transaction availability.");
 };
 
 run().finally(() => { Object.assign(repository, originals); operationalRequestRepository.completeDispatchedForIncident = originalCompleteRequests; }).catch((error) => { console.error(error); process.exitCode = 1; });

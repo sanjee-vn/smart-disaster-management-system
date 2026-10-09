@@ -69,15 +69,15 @@ const review = async (requestId, payload = {}) => {
       if (payload.teamId) {
         if (!mongoose.isValidObjectId(payload.teamId)) throw fail("RESPONSE_TEAM_REQUIRED", "Select a valid response team", 400);
         team = await repository.findTeam(payload.teamId, session);
-        if (!team || team.status !== "AVAILABLE") throw fail("TEAM_UNAVAILABLE", "Selected team is no longer available", 409);
+        if (!team) throw fail("RESPONSE_TEAM_REQUIRED", "Selected response team was not found", 404);
         if (!teamMatchesCapability(team, request.capability)) throw fail("TEAM_CAPABILITY_MISMATCH", "Selected team does not match the requested capability", 409);
         if (Number(team.capacity || 0) < request.requestedPersonnelCount) throw fail("TEAM_CAPACITY_INSUFFICIENT", "Selected team does not have sufficient personnel capacity", 409);
-      } else if (request.status !== "PENDING") {
-        throw fail("RESPONSE_TEAM_REQUIRED", "Select a suitable available team before assigning this approved request", 400);
       }
       const reviewed = request.status === "PENDING"
         ? await repository.approvePending(request._id, team?._id || null, reviewer, reviewedAt, session)
-        : await repository.assignTeamToReviewedRequest(request._id, request.status, team._id, reviewer, reviewedAt, session);
+        : team
+          ? await repository.assignTeamToReviewedRequest(request._id, request.status, team._id, reviewer, reviewedAt, session)
+          : request;
       if (!reviewed) throw fail("REQUEST_REVIEW_CONFLICT", "Operational request changed during review", 409);
     });
   } catch (error) { if (error.code && error.status) throw error; if (transactionUnavailable(error)) throw fail("TRANSACTION_UNAVAILABLE", "Atomic request review requires MongoDB transaction support", 503); throw fail("REQUEST_REVIEW_FAILED", "Operational request review failed", 500); }
@@ -90,10 +90,9 @@ const dispatch = async (requestId) => {
       if (request.status !== "APPROVED") throw fail("REQUEST_NOT_APPROVED", "Only approved requests can be dispatched", 409);
       if (!request.approvedTeamId) throw fail("APPROVED_TEAM_REQUIRED", "Approved request has no assigned team and must be reviewed again", 409);
       const team = await repository.findTeam(request.approvedTeamId, session);
-      if (!team || team.status !== "AVAILABLE") throw fail("TEAM_UNAVAILABLE", "Approved team is no longer available", 409);
+      if (!team) throw fail("APPROVED_TEAM_REQUIRED", "Approved response team no longer exists", 404);
       if (!teamMatchesCapability(team, request.capability)) throw fail("TEAM_CAPABILITY_MISMATCH", "Approved team no longer matches the requested capability", 409);
       if (Number(team.capacity || 0) < request.requestedPersonnelCount) throw fail("TEAM_CAPACITY_INSUFFICIENT", "Approved team no longer has enough personnel capacity", 409);
-      const deployed = await repository.deployTeam(team._id, session); if (!deployed) throw fail("TEAM_UNAVAILABLE", "Approved team is no longer available", 409);
       const now = new Date(); let assignment = await repository.findAssignment(request.incidentId, session);
       const update = { priority: request.priority, destination: request.requestedLocation, instructions: request.notes || `Fulfil ${request.capability} operational request`, eta: request.requiredAt, status: "DISPATCHED", dispatchedAt: now };
       const requiredCapabilities = [...new Set([...(request.planningRequirements || []), request.capability])];
@@ -112,13 +111,10 @@ const deliverByStaff = async (requestId) => {
       if (request.status !== "DISPATCHED") throw fail("REQUEST_NOT_DELIVERABLE", "Only dispatched requests can be marked delivered", 409);
       if (!request.approvedTeamId) throw fail("DISPATCHED_TEAM_REQUIRED", "This dispatched request has no assigned team", 409);
       const team = await repository.findTeam(request.approvedTeamId, session);
-      if (!team || team.status !== "DEPLOYED") throw fail("TEAM_NOT_DEPLOYED", "The assigned team is not currently deployed", 409);
+      if (!team) throw fail("DISPATCHED_TEAM_REQUIRED", "The assigned response team no longer exists", 404);
       const deliveredAt = new Date();
       if (!await repository.markDelivered(request._id, deliveredAt, session)) {
         throw fail("REQUEST_DELIVERY_CONFLICT", "Request status changed before delivery was recorded", 409);
-      }
-      if (!await repository.releaseDeployedTeam(team._id, session)) {
-        throw fail("TEAM_RELEASE_CONFLICT", "The assigned team could not be released", 409);
       }
     });
   } catch (error) {

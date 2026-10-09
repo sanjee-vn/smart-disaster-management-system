@@ -30,17 +30,16 @@ const getPlanningDraft = (state, incidentId) => {
 
 function TeamSelectionWorkspace({ incident, agencies, teams, assignments, errors, draft, onRetry }) {
   const navigate = useNavigate()
-  const [filters, setFilters] = useState({ agencyId: 'ALL', teamType: 'ALL', availability: 'AVAILABLE' })
-  const [selectedTeams, setSelectedTeams] = useState(() => (draft.selectedTeams || []).filter((team) => team.status === 'AVAILABLE'))
+  const [filters, setFilters] = useState({ agencyId: 'ALL', teamType: 'ALL', availability: 'ALL' })
+  const [selectedTeams, setSelectedTeams] = useState(() => draft.selectedTeams || [])
   const [validationError, setValidationError] = useState('')
   const requiredCapabilities = useMemo(() => draft.requiredCapabilities || [], [draft.requiredCapabilities])
   const hasTeamCapability = requiredCapabilities.some((capability) => teamCapabilities.has(capability))
   const teamTypes = useMemo(() => [...new Set(teams.map((team) => team.type))].sort(), [teams])
   const recommendedIds = useMemo(() => new Set(teams.filter((team) => requiredCapabilities.some((capability) => matchesCapability(team, capability))).map((team) => team.id)), [teams, requiredCapabilities])
-  const filteredTeams = teams.filter((team) => (filters.agencyId === 'ALL' || team.agency?.id === filters.agencyId) && (filters.teamType === 'ALL' || team.type === filters.teamType) && (filters.availability === 'ALL' || team.status === filters.availability))
+  const filteredTeams = teams.filter((team) => (filters.agencyId === 'ALL' || team.agency?.id === filters.agencyId) && (filters.teamType === 'ALL' || team.type === filters.teamType))
 
   const toggleTeam = (team) => {
-    if (team.status !== 'AVAILABLE') return
     setSelectedTeams((current) => current.some((item) => item.id === team.id) ? current.filter((item) => item.id !== team.id) : [...current, team])
     setValidationError('')
   }
@@ -51,7 +50,7 @@ function TeamSelectionWorkspace({ incident, agencies, teams, assignments, errors
   }
   const continueToAssignment = () => {
     if (selectedTeams.length === 0) {
-      setValidationError(hasTeamCapability ? 'Select at least one available team matching the operational requirements.' : 'Select an available coordination team so this response can be dispatched and resolved safely.')
+      setValidationError(hasTeamCapability ? 'Select at least one team matching the operational requirements.' : 'Select a coordination team for this response.')
       return
     }
     const responseAssignmentDraft = {
