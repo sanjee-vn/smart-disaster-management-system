@@ -30,6 +30,11 @@ export const getTeams = async () => {
   return response.data.data
 }
 
+export const markTeamAvailable = async (teamId) => {
+  const response = await api.patch(`/response-operations/teams/${teamId}/availability`)
+  return response.data.data
+}
+
 export const getAgencies = async () => {
   const response = await api.get('/response-operations/agencies')
   return response.data.data
@@ -61,6 +66,6 @@ export const reviewOperationalRequest = async (requestId, payload) => {
 }
 
 export const dispatchOperationalRequest = async (requestId) => {
-  const response = await api.post(`/response-operations/operational-requests/${requestId}/dispatch`)
+  const response = await api.post(`/response-operations/operational-requests/${requestId}/dispatch`, {})
   return response.data.data
 }

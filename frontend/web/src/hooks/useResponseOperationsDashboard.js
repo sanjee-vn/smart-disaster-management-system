@@ -24,13 +24,13 @@ export default function useResponseOperationsDashboard(includeResourceDetails = 
       const nextErrors = {}
       results.forEach((result, index) => {
         const key = keys[index]
-        if (result.status === 'fulfilled') nextData[key] = result.value
-        else nextErrors[key] = result.reason.response?.data?.message || `Unable to load ${key}.`
+        if (result.status === 'fulfilled') nextData[key] = Array.isArray(result.value) ? result.value : []
+        else nextErrors[key] = result.reason.response?.data?.error?.message || result.reason.response?.data?.message || `Unable to load ${key}.`
       })
-      if (results[0].status === 'fulfilled') {
+      if (results[0].status === 'fulfilled' && Array.isArray(results[0].value)) {
         const distributionResults = await Promise.allSettled(results[0].value.map((incident) => getDistributions(incident.incidentId)))
         if (!active) return
-        nextData.distributions = distributionResults.flatMap((result) => result.status === 'fulfilled' ? result.value : [])
+        nextData.distributions = distributionResults.flatMap((result) => result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : [])
         if (distributionResults.some((result) => result.status === 'rejected')) nextErrors.distributions = 'Unable to load distributions for one or more incidents.'
       }
       setData(nextData)

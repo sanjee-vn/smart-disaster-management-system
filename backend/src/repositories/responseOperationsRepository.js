@@ -16,6 +16,12 @@ const findIncidents = () => Incident.find().populate({ path: "warningId", model:
 const findIncidentByIncidentId = (incidentId) => Incident.findOne({ incidentId }).populate({ path: "warningId", model: Warning }).lean();
 const findAgencies = (filters) => Agency.find(filters).sort({ name: 1 }).lean();
 const findTeams = (filters) => ResponseTeam.find(filters).populate({ path: "agencyId", model: Agency, select: "name type contact status" }).sort({ name: 1 }).lean();
+const findTeamById = (teamId) => ResponseTeam.findById(teamId).populate({ path: "agencyId", model: Agency, select: "name type contact status" }).lean();
+const releaseDeployedTeam = (teamId) => ResponseTeam.findOneAndUpdate(
+  { _id: teamId, status: "DEPLOYED" },
+  { $set: { status: "AVAILABLE" } },
+  { returnDocument: "after", runValidators: true },
+).lean();
 const findAssignments = (filters) => ResponseAssignment.find(filters)
   .populate({ path: "incidentId", model: Incident, select: "incidentId hazardType severity district status" })
   .populate({ path: "teamIds", model: ResponseTeam, populate: { path: "agencyId", model: Agency, select: "name type" } })
@@ -80,7 +86,7 @@ const countOutstandingOperationalRequests = (incidentId, session) => Operational
 
 module.exports = {
   findWarningByWarningId, updateWarningByWarningId, findIncidents, findIncidentByIncidentId,
-  findAgencies, findTeams, findAssignments, runInTransaction, findIncidentForDispatch,
+  findAgencies, findTeams, findTeamById, releaseDeployedTeam, findAssignments, runInTransaction, findIncidentForDispatch,
   findAssignmentForDispatch, findExistingAssignmentForDispatch, findTeamsForDispatch, deployAvailableTeams,
   updatePlannedAssignment, createAssignment, updateIncidentResponseStatus,
   findAssignmentWithDetailsById,

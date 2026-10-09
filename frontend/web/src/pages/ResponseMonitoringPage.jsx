@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Building2, PackageCheck, RefreshCw, ShieldCheck, Users } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, PackageCheck, RefreshCw, ShieldCheck, Users } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import MonitoringSummaryCards from '../components/MonitoringSummaryCards'
 import StatusBadge from '../components/StatusBadge'
@@ -13,6 +13,7 @@ const displayTime = (value) => value ? new Date(value).toLocaleString() : 'Not a
 
 export default function ResponseMonitoringPage() {
   const { incidentId } = useParams()
+  const { state } = useLocation()
   const navigate = useNavigate()
   const { incident, assignment, requests, shelters, distributions, loading, error, lastRefreshed, refresh } = useResponseMonitoringData(incidentId)
   const [confirming, setConfirming] = useState(false)
@@ -52,6 +53,7 @@ export default function ResponseMonitoringPage() {
   const requirements = normalizeRequirements(assignment?.requiredCapabilities)
   return <DashboardLayout activeSection="incidents" breadcrumb="Response Operations / Live Monitoring" role="Response Officer"><div className="content response-monitoring-page">
     <button className="back-link" onClick={() => navigate('/response-operations')}><ArrowLeft size={15} /> Response Operations</button>
+    {state?.dispatchNotice && <div className="request-action-message success" role="status"><CheckCircle2 size={16}/>{state.dispatchNotice}</div>}
     <header className="monitoring-header"><div><p className="warning-eyebrow">Live operational overview</p><h1>Response Monitoring &amp; Resolution</h1><p>{incident.affectedArea || incident.district}</p><div className="warning-header-badges"><StatusBadge value={incident.severity} kind="severity" /><StatusBadge value={incident.status} /></div></div><div className="monitoring-context"><div><span>Incident ID</span><strong>{incident.incidentId}</strong></div><div><span>Warning ID</span><strong>{incident.warning?.warningId || 'Not linked'}</strong></div><div><span>Hazard</span><strong>{incident.hazardType}</strong></div><div><span>District</span><strong>{incident.district}</strong></div><div><span>Response ID</span><strong>{assignment?.responseId || 'No assignment'}</strong></div><div><span>Response status</span><strong>{assignment?.status || 'Not assigned'}</strong></div><div><span>Last refreshed</span><strong>{displayTime(lastRefreshed)}</strong></div></div></header>
     <div className="monitoring-toolbar"><span>Current data from incident operations</span><button className="btn btn-secondary" disabled={loading} onClick={refresh}><RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh</button></div>
     <MonitoringSummaryCards metrics={metrics} />

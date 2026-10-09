@@ -28,7 +28,12 @@ import ProcessingDistributionPage from './pages/ProcessingDistributionPage.jsx';
 import DistributionSuccessPage from './pages/DistributionSuccessPage.jsx';
 import ResponseMonitoringPage from './pages/ResponseMonitoringPage.jsx';
 import OperationalRequestsPage from './pages/OperationalRequestsPage.jsx';
+import OperationalRequestStatusPage from './pages/OperationalRequestStatusPage.jsx';
 import DistrictResourceDashboard from './pages/DistrictResourceDashboard.jsx';
+import WarningReviewPage from './pages/WarningReviewPage.jsx';
+import ConfigureWarningPage from './pages/ConfigureWarningPage.jsx';
+import WarningStatusPage from './pages/WarningStatusPage.jsx';
+import Component03ErrorBoundary from './components/Component03ErrorBoundary.jsx';
 import './App.css';
 
 const initialWarning = {
@@ -204,8 +209,13 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
 
 function App() {
   const [authSession, setAuthSession] = useState(() => readAuthSession())
-  const roleMap = { dmc_officer: 'dmc', duty_officer: 'duty', district_officer: 'district', district_resource_officer: 'resource', response_officer: 'response' }
-  const role = roleMap[authSession?.user?.role] || ''
+  const roleMap = {
+    dmc_officer: 'dmc', duty_officer: 'duty', district_officer: 'district',
+    district_resource_officer: 'resource', district_resource_coordination_officer: 'resource',
+    response_officer: 'response', response_operations_officer: 'response',
+  }
+  const normalizedRole = String(authSession?.user?.role || '').toLowerCase()
+  const role = roleMap[normalizedRole] || ''
   const [reports, setReports] = useState([])
   const [activeReport, setActiveReport] = useState(null)
 
@@ -251,12 +261,14 @@ function App() {
   const districtPage = role === 'district'
     ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="district"/>
     : <Navigate to={role ? '/duty' : '/login'} replace/>
+  const c3 = (page) => <Component03ErrorBoundary>{page}</Component03ErrorBoundary>
   const responseEntry = role === 'response'
-    ? <ResponseOperationsDashboard/>
+    ? c3(<ResponseOperationsDashboard/> )
     : <Navigate to={role ? '/' : '/login'} replace/>
-  const resourceIncidentPage = role === 'resource' ? <ResourceCoordinationDashboard/> : <Navigate to="/" replace/>
-  const responseOnly = (page) => role === 'response' ? page : <Navigate to="/" replace/>
-  const resourceOnly = (page) => role === 'resource' ? page : <Navigate to="/" replace/>
+  const resourceIncidentPage = role === 'resource' ? c3(<ResourceCoordinationDashboard/>) : <Navigate to="/" replace/>
+  const responseOnly = (page) => role === 'response' ? c3(page) : <Navigate to="/" replace/>
+  const resourceOnly = (page) => role === 'resource' ? c3(page) : <Navigate to="/" replace/>
+  const warningOnly = (page) => role === 'duty' ? c3(page) : <Navigate to="/" replace/>
 
   return <BrowserRouter><Routes>
     <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : role === 'resource' ? '/resource-operations' : role === 'response' ? '/response-operations' : '/login'} replace/>}/>
@@ -266,8 +278,13 @@ function App() {
     <Route path="/duty" element={dutyPage}/>
     <Route path="/duty/hazard-monitoring" element={dutyPage}/>
     <Route path="/district" element={districtPage}/>
-    <Route path="/response-operations" element={role === 'resource' ? <DistrictResourceDashboard/> : responseEntry}/>
+    <Route path="/warnings/:warningId/review" element={warningOnly(<WarningReviewPage/>)}/>
+    <Route path="/warnings/:warningId/configure" element={warningOnly(<ConfigureWarningPage/>)}/>
+    <Route path="/warnings/:warningId/status" element={warningOnly(<WarningStatusPage/>)}/>
+    <Route path="/response-operations" element={role === 'resource' ? c3(<DistrictResourceDashboard/>) : responseEntry}/>
+    <Route path="/response-operations/request-status" element={responseOnly(<OperationalRequestStatusPage/>)}/>
     <Route path="/resource-operations" element={resourceOnly(<DistrictResourceDashboard/>)}/>
+    <Route path="/resource-operations/requests" element={resourceOnly(<DistrictResourceDashboard requestsOnly/>)}/>
     <Route path="/response-operations/incidents/:incidentId" element={responseOnly(<IncidentPlanningPage/>)}/>
     <Route path="/response-operations/incidents/:incidentId/teams" element={responseOnly(<TeamSelectionPage/>)}/>
     <Route path="/response-operations/incidents/:incidentId/assignment" element={responseOnly(<ResponseAssignmentPage/>)}/>

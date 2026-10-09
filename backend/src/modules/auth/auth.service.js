@@ -28,7 +28,7 @@ async function register(data) {
   assertAuthConfig();
   const passwordHash = await bcrypt.hash(data.password, 12);
   let user;
-  try { user = await User.create({ name: data.name, email: data.email, passwordHash, role: 'CITIZEN' }); }
+  try { user = await User.create({ name: data.name, email: data.email, passwordHash, role: data.role === 'STAFF_OFFICER' ? 'STAFF_OFFICER' : 'CITIZEN' }); }
   catch (error) {
     if (error.code === 11000) throw authError(409, 'An account with this email already exists. Please log in.');
     throw error;

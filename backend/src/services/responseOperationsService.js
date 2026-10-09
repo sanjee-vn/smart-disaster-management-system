@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const repository = require("../repositories/responseOperationsRepository");
+const operationalRequestRepository = require("../repositories/operationalRequestRepository");
 
 const createError = (message, status, code) => Object.assign(new Error(message), { status, code });
 
@@ -99,6 +100,16 @@ const getTeams = async ({ agencyId, status, type }) => {
   }
   if (type) filters.type = type;
   return (await repository.findTeams(filters)).map(formatTeam);
+};
+
+const markTeamAvailable = async (teamId) => {
+  if (!mongoose.isValidObjectId(teamId)) throw createError("Response team not found", 404, "RESPONSE_TEAM_NOT_FOUND");
+  const current = await repository.findTeamById(teamId);
+  if (!current) throw createError("Response team not found", 404, "RESPONSE_TEAM_NOT_FOUND");
+  if (current.status !== "DEPLOYED") throw createError("Only a deployed team can be marked available", 409, "TEAM_NOT_DEPLOYED");
+  const updated = await repository.releaseDeployedTeam(teamId);
+  if (!updated) throw createError("Team availability changed before it could be released", 409, "TEAM_STATUS_CONFLICT");
+  return formatTeam(await repository.findTeamById(teamId));
 };
 
 const getAssignments = async ({ incidentId }) => {
@@ -249,6 +260,7 @@ const resolveResponse = async (incidentId) => {
 
       const completedAssignment = await repository.completeAssignment(assignment._id, session);
       if (!completedAssignment) throw createError("Response assignment is no longer resolvable", 409, "RESPONSE_NOT_RESOLVABLE");
+      await operationalRequestRepository.completeDispatchedForIncident(incident._id, new Date(), session);
       const resolvedIncident = await repository.resolveIncident(incident._id, session);
       if (!resolvedIncident) throw createError("Incident is no longer resolvable", 409, "INCIDENT_ALREADY_RESOLVED");
 
@@ -268,4 +280,4 @@ const resolveResponse = async (incidentId) => {
   }
 };
 
-module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, getAssignments, dispatchResponseAssignment, resolveResponse };
+module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, markTeamAvailable, getAssignments, dispatchResponseAssignment, resolveResponse };

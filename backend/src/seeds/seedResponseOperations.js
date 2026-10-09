@@ -18,25 +18,29 @@ const agencies = [
 
 const teams = [
   { name: "DMC Coordination Team-01", agency: "Disaster Management Centre", type: "Coordination", currentLocation: "DMC Colombo Operations Centre", capacity: 8, status: "AVAILABLE" },
-  { name: "Police Rescue Unit-01", agency: "Sri Lanka Police", type: "Search and Rescue", currentLocation: "Colombo Central Police Station", capacity: 12, status: "DEPLOYED" },
+  { name: "Police Rescue Unit-01", agency: "Sri Lanka Police", type: "Search and Rescue", currentLocation: "Colombo Central Police Station", capacity: 12, status: "AVAILABLE" },
   { name: "Army Rescue Team-01", agency: "Sri Lanka Army", type: "Heavy Rescue", currentLocation: "Panagoda Army Cantonment", capacity: 20, status: "AVAILABLE" },
-  { name: "Fire & Rescue Team-01", agency: "Fire & Rescue Service", type: "Flood Rescue", currentLocation: "Colombo Fire Station", capacity: 10, status: "DEPLOYED" },
+  { name: "Fire & Rescue Team-01", agency: "Fire & Rescue Service", type: "Flood Rescue", currentLocation: "Colombo Fire Station", capacity: 10, status: "AVAILABLE" },
   { name: "Medical Emergency Team-01", agency: "Ministry of Health", type: "Emergency Medical", currentLocation: "National Hospital Colombo", capacity: 7, status: "AVAILABLE" },
-  { name: "Red Cross Volunteer Team-01", agency: "Sri Lanka Red Cross", type: "Volunteer Relief", currentLocation: "Red Cross Colombo Branch", capacity: 15, status: "UNAVAILABLE" },
+  { name: "Red Cross Volunteer Team-01", agency: "Sri Lanka Red Cross", type: "Volunteer Relief", currentLocation: "Red Cross Colombo Branch", capacity: 15, status: "AVAILABLE" },
+  { name: "Police Field Response Unit-02", agency: "Sri Lanka Police", type: "Police Emergency Response", currentLocation: "Colombo Central Police Station", capacity: 30, status: "AVAILABLE" },
+  { name: "Fire & Rescue Team-02", agency: "Fire & Rescue Service", type: "Fire Rescue", currentLocation: "Colombo Fire Station", capacity: 15, status: "AVAILABLE" },
+  { name: "Medical Emergency Team-02", agency: "Ministry of Health", type: "Emergency Medical", currentLocation: "National Hospital Colombo", capacity: 40, status: "AVAILABLE" },
+  { name: "Army Emergency Response Team-02", agency: "Sri Lanka Army", type: "Armed Forces Emergency Response", currentLocation: "Panagoda Army Cantonment", capacity: 40, status: "AVAILABLE" },
+  { name: "Colombo Police District Task Force-03", agency: "Sri Lanka Police", type: "Police District Emergency Response", currentLocation: "Colombo District Operations Centre", capacity: 100, status: "AVAILABLE" },
+  { name: "Army Operational Support Team-03", agency: "Sri Lanka Army", type: "Armed Forces Operational Support", currentLocation: "Panagoda Army Cantonment", capacity: 45, status: "AVAILABLE" },
+  { name: "Kandy Police Emergency Unit-04", agency: "Sri Lanka Police", type: "Police Emergency Response", currentLocation: "Kandy Police Headquarters", capacity: 35, status: "AVAILABLE" },
+  { name: "Kandy Fire & Rescue Unit-03", agency: "Fire & Rescue Service", type: "Fire Rescue", currentLocation: "Kandy Fire Brigade", capacity: 40, status: "AVAILABLE" },
 ];
 
 const seed = async () => {
   try {
     await connectDatabase();
     const now = new Date();
-    const warning = await Warning.findOneAndUpdate(
-      { warningId: "WRN-2026-COLOMBO-FLOOD-01" },
-      { $setOnInsert: { warningId: "WRN-2026-COLOMBO-FLOOD-01", hazardType: "Flood", severity: "EMERGENCY", targetArea: "Colombo District", district: "Colombo", status: "ACTIVE", issuedBy: "Assessment Officer", issuedAt: now, createdAt: now } },
-      { upsert: true, returnDocument: "after", runValidators: true }
-    );
+    const warning = await Warning.findOne({ warningId: "WRN-2026-COLOMBO-FLOOD-01" }).lean();
     const incident = await Incident.findOneAndUpdate(
       { incidentId: "INC-2026-COLOMBO-FLOOD-01" },
-      { $setOnInsert: { incidentId: "INC-2026-COLOMBO-FLOOD-01", warningId: warning._id, hazardType: "Flood", severity: "EMERGENCY", district: "Colombo", affectedArea: "Colombo District", affectedPopulation: 18500, status: "ACTIVE", createdAt: now } },
+      { $setOnInsert: { incidentId: "INC-2026-COLOMBO-FLOOD-01", warningId: warning?._id || null, hazardType: "Flood", severity: "EMERGENCY", district: "Colombo", affectedArea: "Colombo District", affectedPopulation: 18500, status: "ACTIVE", createdAt: now } },
       { upsert: true, returnDocument: "after", runValidators: true }
     );
 
@@ -46,10 +50,10 @@ const seed = async () => {
     const agencyRecords = await Agency.find({ name: { $in: agencies.map(({ name }) => name) } }).lean();
     const agencyByName = new Map(agencyRecords.map((agency) => [agency.name, agency._id]));
 
-    for (const { agency, ...team } of teams) {
+    for (const { agency, status: _status, ...team } of teams) {
       await ResponseTeam.findOneAndUpdate(
         { name: team.name },
-        { $setOnInsert: { ...team, agencyId: agencyByName.get(agency) } },
+        { $setOnInsert: { ...team, agencyId: agencyByName.get(agency) }, $set: { status: "AVAILABLE" } },
         { upsert: true, returnDocument: "after", runValidators: true }
       );
     }

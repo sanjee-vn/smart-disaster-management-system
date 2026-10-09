@@ -16,7 +16,9 @@ import LogoScreen from '../screens/auth/LogoScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
-import StaffUpdatesScreen from '../screens/StaffUpdatesScreen';
+import StaffHomeScreen from '../screens/StaffHomeScreen';
+import StaffMapScreen from '../screens/StaffMapScreen';
+import StaffResourceReportsScreen from '../screens/StaffResourceReportsScreen';
 
 const Tabs = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -36,10 +38,10 @@ function MainTabs() {
   </Tabs.Navigator>;
 }
 function StaffTabs() {
-  return <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: c.primary, tabBarInactiveTintColor: '#738991', tabBarIcon: ({ focused, color }) => <Icon name={`${({ Home: 'home', Map: 'map', Activity: 'pulse', Profile: 'person' })[route.name]}${focused ? '' : '-outline'}`} size={23} color={color}/> })}>
-    <Tabs.Screen name="Home">{() => <StaffUpdatesScreen />}</Tabs.Screen>
-    <Tabs.Screen name="Map" component={MapScreen}/>
-    <Tabs.Screen name="Activity">{() => <StaffUpdatesScreen activityOnly />}</Tabs.Screen>
+  return <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: c.primary, tabBarInactiveTintColor: '#738991', tabBarLabelStyle: { fontSize: 11, fontWeight: '600' }, tabBarIcon: ({ focused, color }) => <Icon name={`${({ Home: 'home', Map: 'map', Reports: 'documents', Profile: 'person' })[route.name]}${focused ? '' : '-outline'}`} size={23} color={color}/> })}>
+    <Tabs.Screen name="Home" component={StaffHomeScreen}/>
+    <Tabs.Screen name="Map" component={StaffMapScreen}/>
+    <Tabs.Screen name="Reports" component={StaffResourceReportsScreen}/>
     <Tabs.Screen name="Profile" component={ProfileScreen}/>
   </Tabs.Navigator>;
 }

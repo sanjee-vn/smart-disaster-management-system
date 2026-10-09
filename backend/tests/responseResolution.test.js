@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const mongoose = require("mongoose");
 const repository = require("../src/repositories/responseOperationsRepository");
+const operationalRequestRepository = require("../src/repositories/operationalRequestRepository");
 const service = require("../src/services/responseOperationsService");
 
 const ids = {
@@ -9,6 +10,7 @@ const ids = {
 };
 const methods = ["runInTransaction", "findIncidentForDispatch", "findCurrentAssignmentByIncident", "findAnyAssignmentByIncident", "countOutstandingDistributions", "countOutstandingOperationalRequests", "findTeamsForResolution", "releaseDeployedTeams", "completeAssignment", "resolveIncident"];
 const originals = Object.fromEntries(methods.map((name) => [name, repository[name]]));
+const originalCompleteRequests = operationalRequestRepository.completeDispatchedForIncident;
 
 let state;
 let failIncidentUpdate;
@@ -55,6 +57,7 @@ const reset = () => {
     state.incident.status = "RESOLVED";
     return state.incident;
   };
+  operationalRequestRepository.completeDispatchedForIncident = async () => ({ modifiedCount: 0 });
 };
 const expectCode = (operation, code) => assert.rejects(operation, (error) => error.code === code);
 
@@ -95,4 +98,4 @@ const run = async () => {
   console.log("Response resolution tests passed: validation, scoped team release, rollback, and transaction availability.");
 };
 
-run().finally(() => Object.assign(repository, originals)).catch((error) => { console.error(error); process.exitCode = 1; });
+run().finally(() => { Object.assign(repository, originals); operationalRequestRepository.completeDispatchedForIncident = originalCompleteRequests; }).catch((error) => { console.error(error); process.exitCode = 1; });
