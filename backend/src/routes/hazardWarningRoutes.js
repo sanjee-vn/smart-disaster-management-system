@@ -4,7 +4,10 @@ const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
 const router = express.Router();
-router.use(requireAuth);
+// This router is mounted at /api; keep its auth guard scoped to hazard and
+// warning endpoints so it cannot intercept other API modules mounted later.
+router.use("/hazards", requireAuth);
+router.use("/warnings", requireAuth);
 router.get("/hazards", controller.listHazards);
 router.get("/hazards/:id", controller.getHazard);
 router.patch("/hazards/:id", requireRole("duty_officer", "district_officer"), controller.updateHazard);

@@ -133,6 +133,8 @@ const getAssignments = async ({ incidentId }) => {
     teams: assignment.teamIds.map(formatTeam), priority: assignment.priority || null,
     destination: assignment.destination || null, instructions: assignment.instructions || null,
     status: assignment.status, dispatchedAt: assignment.dispatchedAt || null,
+    staffStatus: assignment.staffStatus || "PENDING", staffAcceptedAt: assignment.staffAcceptedAt || null,
+    staffAcceptedBy: assignment.staffAcceptedBy || null,
     requiredCapabilities: assignment.requiredCapabilities || [],
     eta: assignment.eta || null, createdAt: assignment.createdAt,
   }));
@@ -142,6 +144,8 @@ const formatAssignment = (assignment) => ({
   id: assignment._id.toString(), responseId: assignment.responseId,
   incidentId: assignment.incidentId?.incidentId || null,
   status: assignment.status, priority: assignment.priority,
+  staffStatus: assignment.staffStatus || "PENDING", staffAcceptedAt: assignment.staffAcceptedAt || null,
+  staffAcceptedBy: assignment.staffAcceptedBy || null,
   destination: assignment.destination, instructions: assignment.instructions,
   teams: assignment.teamIds.map(formatTeam), dispatchedAt: assignment.dispatchedAt,
   requiredCapabilities: assignment.requiredCapabilities || [], eta: assignment.eta,
@@ -180,7 +184,7 @@ const dispatchResponseAssignment = async (payload = {}) => {
         assignment = await repository.findAssignmentForDispatch(responseId, session);
         if (!assignment) throw createError("Response assignment not found", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
         if (assignment.incidentId.toString() !== incident._id.toString()) throw createError("Response assignment does not belong to this incident", 400, "RESPONSE_ASSIGNMENT_NOT_FOUND");
-        if (assignment.status !== "PLANNED") throw createError("Response assignment has already been dispatched or is not dispatchable", 409, "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
+        if (!["PLANNED", "DISPATCHED", "IN_PROGRESS"].includes(assignment.status)) throw createError("Completed response assignments cannot be dispatched again", 409, "RESPONSE_ASSIGNMENT_NOT_DISPATCHABLE");
       } else {
         const existingAssignment = await repository.findExistingAssignmentForDispatch(incident._id, session);
         if (existingAssignment) throw createError("A response assignment already exists for this incident", 409, "RESPONSE_ASSIGNMENT_ALREADY_EXISTS");
@@ -190,7 +194,7 @@ const dispatchResponseAssignment = async (payload = {}) => {
       if (teams.length !== teamIds.length) throw createError("One or more response teams were not found", 404, "RESPONSE_TEAM_NOT_FOUND");
 
       const now = new Date();
-      const update = { teamIds, priority, destination, instructions, requiredCapabilities, eta, status: "DISPATCHED", dispatchedAt: now };
+      const update = { teamIds, priority, destination, instructions, requiredCapabilities, eta, status: "DISPATCHED", staffStatus: "PENDING", staffAcceptedAt: null, staffAcceptedBy: null, dispatchedAt: now };
       let savedAssignment;
       if (assignment) {
         savedAssignment = await repository.updatePlannedAssignment(assignment._id, update, session);
@@ -212,6 +216,27 @@ const dispatchResponseAssignment = async (payload = {}) => {
   const dispatched = await repository.findAssignmentWithDetailsById(assignmentId);
   if (!dispatched) throw createError("Dispatched assignment could not be loaded", 500, "DISPATCH_TRANSACTION_FAILED");
   return formatAssignment(dispatched);
+};
+
+const acceptResponseAssignmentByStaff = async (responseId, actor = {}) => {
+  if (!responseId || typeof responseId !== "string") throw createError("Response assignment not found", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
+  try {
+    await repository.runInTransaction(async (session) => {
+      const current = await repository.findAssignmentForDispatch(responseId, session);
+      if (!current) throw createError("Response assignment not found", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
+      if (current.staffStatus === "DISPATCHED") throw createError("Response assignment has already been accepted", 409, "RESPONSE_ASSIGNMENT_ALREADY_ACCEPTED");
+      if (!["DISPATCHED", "IN_PROGRESS"].includes(current.status)) throw createError("Only an active dispatched response can be accepted", 409, "RESPONSE_ASSIGNMENT_NOT_ACCEPTABLE");
+      const accepted = await repository.acceptAssignmentByStaff(responseId, new Date(), actor.name || actor.id || "Staff Officer", session);
+      if (!accepted) throw createError("Response assignment status changed before acceptance", 409, "RESPONSE_ASSIGNMENT_ACCEPT_CONFLICT");
+    });
+    const accepted = await repository.findAssignments({ responseId });
+    if (!accepted[0]) throw createError("Accepted response assignment could not be loaded", 404, "RESPONSE_ASSIGNMENT_NOT_FOUND");
+    return formatAssignment(accepted[0]);
+  } catch (error) {
+    if (error.code && error.status) throw error;
+    if (isTransactionUnavailable(error)) throw createError("Atomic staff acceptance requires MongoDB transaction support.", 503, "TRANSACTION_UNAVAILABLE");
+    throw createError("Response assignment acceptance failed.", 500, "RESPONSE_ASSIGNMENT_ACCEPT_FAILED");
+  }
 };
 
 const isTransactionUnavailable = (error) => {
@@ -267,4 +292,4 @@ const resolveResponse = async (incidentId) => {
   }
 };
 
-module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, markTeamAvailable, getAssignments, dispatchResponseAssignment, resolveResponse };
+module.exports = { getWarning, updateWarning, getIncidents, getIncident, getAgencies, getTeams, markTeamAvailable, getAssignments, dispatchResponseAssignment, acceptResponseAssignmentByStaff, resolveResponse };

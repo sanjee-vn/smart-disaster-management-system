@@ -21,6 +21,10 @@ const errorGuidance = {
   DELIVERY_RESOURCE_UNAVAILABLE: { title: 'Delivery resource is no longer available', message: 'Return to the distribution form and select another available vehicle or delivery team.' },
   DELIVERY_RESOURCE_CONFLICT: { title: 'Delivery resource changed during processing', message: 'Another operation reserved this resource. Return to the form and select another one.' },
   TRANSACTION_UNAVAILABLE: { title: 'Atomic processing is unavailable', message: 'MongoDB transaction support is required. Nothing was committed and your draft has been kept.' },
+  INCIDENT_NOT_ACTIVE: { title: 'Incident is no longer active', message: 'This distribution was not committed because the incident has already been resolved.' },
+  RELIEF_CONTEXT_REQUIRED: { title: 'Persisted relief plan is missing', message: 'Return to response planning and persist Food, Water, or Medicine requirements before retrying.' },
+  RESOURCE_NOT_REQUIRED: { title: 'Resource is not in the response plan', message: 'Return to the form and choose a Food, Water, or Medicine category required by the persisted plan.' },
+  INVENTORY_ITEM_INACTIVE: { title: 'Inventory source is inactive', message: 'Return to the form and select another active inventory source.' },
 }
 
 const getApiError = (requestError) => {

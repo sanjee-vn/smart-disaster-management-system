@@ -89,6 +89,10 @@
 .resource-shell .panel-header h2 { font-size: 15px; }
 .resource-shell .panel-header p { margin: 4px 0 0; color: #849088; font-size: 11px; }
 .resource-shell .table-wrap { overflow-x: auto; }
+.resource-shell .incoming-resources-table.has-actions th:last-child,
+.resource-shell .incoming-resources-table.has-actions td:last-child { position: sticky; right: 0; z-index: 1; background: #fff; box-shadow: -8px 0 12px -12px #173c30; }
+.resource-shell .incoming-resources-table.has-actions th:last-child { z-index: 2; background: #f5f8f6; }
+.resource-shell .incoming-resources-table.has-actions tbody tr:hover td:last-child { background: #f6faf7; }
 .resource-shell table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
 .resource-shell th { color: #75827b; background: #f8faf9; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
 .resource-shell th, .resource-shell td { padding: 12px 17px; border-bottom: 1px solid #edf1ef; white-space: nowrap; }
@@ -933,3 +937,10 @@
 .component03-fatal-state h1 { margin: 0; color: #293d34; font-size: 22px; }
 .component03-fatal-state p { max-width: 620px; margin: 0; color: #68786f; }
 .component03-fatal-state > div { display: flex; gap: 8px; margin-top: 8px; }
+.register-shelter-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; background: #f5c451; color: #173d2d; border: 0; font-weight: 800; }
+.register-shelter-btn:hover { background: #ffd36c; }
+.shelter-heading-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.shelter-heading-actions .register-shelter-btn { margin-top: 0; }
+.shelter-registration-card { scroll-margin-top: 24px; }
+.shelter-registration-card .assignment-card-heading { grid-template-columns: auto 1fr auto; }
+.icon-action { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d6e0dc; border-radius: 10px; color: #315948; background: #fff; cursor: pointer; }

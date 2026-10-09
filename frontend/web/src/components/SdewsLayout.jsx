@@ -27,7 +27,6 @@ const responseNavigation = (incidentId) => {
   return [
     { label: 'Response Dashboard', icon: House, to: '/response-operations' },
     { label: 'Incident Planning', icon: ClipboardList, to: incidentRoot },
-    { label: 'Operational Requests', icon: ClipboardCheck, to: incidentRoot && `${incidentRoot}/requests` },
     { label: 'Team / Dispatch', icon: Users, to: incidentRoot && `${incidentRoot}/teams` },
     { label: 'Shelter & Evacuation', icon: ShieldCheck, to: incidentRoot && `${incidentRoot}/shelters` },
     { label: 'Response Monitoring', icon: Activity, to: incidentRoot && `${incidentRoot}/monitoring` },
@@ -39,10 +38,9 @@ const resourceNavigation = (incidentId) => {
   const resourceRoot = incidentId ? `/response-operations/incidents/${encodeURIComponent(incidentId)}/resources` : ''
   return [
     { label: 'Resource Dashboard', icon: House, to: '/resource-operations' },
-    { label: 'Incoming Requests', icon: ClipboardCheck, to: '/resource-operations/requests' },
     { label: 'Resource Allocation', icon: Warehouse, to: resourceRoot },
     { label: 'Distribution Monitoring', icon: Truck, to: resourceRoot && `${resourceRoot}?view=distributions` },
-    { label: 'Response Monitoring', icon: PackageCheck, to: resourceRoot && `${resourceRoot}?view=monitoring` },
+    { label: 'Resource Monitoring', icon: PackageCheck, to: resourceRoot && `${resourceRoot}?view=monitoring` },
   ]
 }
 
@@ -63,7 +61,7 @@ function activeLabel(pathname, search) {
   if (/^\/resource-coordination(?:\/|$)/.test(pathname)) return 'Resource Allocation'
   if (/^\/response-operations\/incidents\/[^/]+\/resources(?:\/|$)/.test(pathname)) {
     const resourceView = new URLSearchParams(search).get('view')
-    return resourceView === 'distributions' ? 'Distribution Monitoring' : resourceView === 'monitoring' ? 'Response Monitoring' : 'Resource Allocation'
+    return resourceView === 'distributions' ? 'Distribution Monitoring' : resourceView === 'monitoring' ? 'Resource Monitoring' : 'Resource Allocation'
   }
   if (/^\/response-operations\/incidents\/[^/]+\/monitoring\/?$/.test(pathname)) return 'Response Monitoring'
   if (/^\/response-operations\/incidents\/[^/]+\/requests\/?$/.test(pathname)) return 'Operational Requests'

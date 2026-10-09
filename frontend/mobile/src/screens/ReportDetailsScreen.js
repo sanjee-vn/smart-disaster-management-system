@@ -1,6 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Button, Card, EmptyState, Icon, LoadingState, Notice, Screen, SectionTitle, StatusBadge, ui } from '../components/UI';
 import { useReports } from '../context/ReportsContext';

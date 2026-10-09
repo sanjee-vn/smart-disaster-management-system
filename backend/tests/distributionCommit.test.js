@@ -21,7 +21,7 @@ const targets = {
   inventory: [inventoryRepository, ["findByIdInSession", "decrementAvailableStock"]],
   delivery: [deliveryResourceRepository, ["findByIdInSession", "reserveAvailable"]],
   owner: [resourceOwnerRepository, ["findByIdInSession"]],
-  response: [responseOperationsRepository, ["findIncidentForDispatch", "findAssignmentForDispatch"]],
+  response: [responseOperationsRepository, ["findIncidentForDispatch", "findAssignmentForDispatch", "findExistingAssignmentForDispatch"]],
 };
 const originals = Object.fromEntries(Object.entries(targets).map(([key, [object, names]]) => [key, Object.fromEntries(names.map((name) => [name, object[name]]))]));
 
@@ -51,10 +51,10 @@ const reset = () => {
   inventoryConflict = false;
   deliveryConflict = false;
   state = {
-    incident: { _id: ids.incident, incidentId: "INC-TEST-01" },
-    assignment: { _id: ids.assignment, responseId: "RSP-TEST-01", incidentId: ids.incident },
+    incident: { _id: ids.incident, incidentId: "INC-TEST-01", status: "RESPONSE_IN_PROGRESS" },
+    assignment: { _id: ids.assignment, responseId: "RSP-TEST-01", incidentId: ids.incident, status: "DISPATCHED", requiredCapabilities: ["FOOD", "WATER", "MEDICINE"] },
     shelter: { _id: ids.shelter, incidentId: "INC-TEST-01", incomingResources: [] },
-    inventory: { _id: ids.inventory, ownerId: ids.owner, itemName: "Water 1L", unit: "bottles", availableQuantity: 1000 },
+    inventory: { _id: ids.inventory, ownerId: ids.owner, category: "Water", itemName: "Water 1L", unit: "bottles", availableQuantity: 1000, status: "ACTIVE" },
     owner: { _id: ids.owner, name: "Government Central Warehouse" },
     delivery: { _id: ids.delivery, name: "DMC Truck 01", status: "AVAILABLE" },
     distributions: [],
@@ -69,6 +69,7 @@ const reset = () => {
   });
   responseOperationsRepository.findIncidentForDispatch = async (incidentId) => state.incident?.incidentId === incidentId ? state.incident : null;
   responseOperationsRepository.findAssignmentForDispatch = async (responseId) => state.assignment?.responseId === responseId ? state.assignment : null;
+  responseOperationsRepository.findExistingAssignmentForDispatch = async () => state.assignment;
   shelterRepository.findByIdInSession = async (id) => state.shelter?._id.toString() === id.toString() ? state.shelter : null;
   inventoryRepository.findByIdInSession = async (id) => state.inventory?._id.toString() === id.toString() ? state.inventory : null;
   resourceOwnerRepository.findByIdInSession = async (id) => state.owner?._id.toString() === id.toString() ? state.owner : null;
@@ -108,7 +109,7 @@ const run = async () => {
   reset();
   const result = await service.createDistribution(validPayload);
   assert.match(result.distributionId, /^DST-\d{4}-[A-F0-9]{8}$/);
-  assert.equal(result.status, "EN_ROUTE");
+  assert.equal(result.status, "PENDING");
   assert.equal(result.incidentId, "INC-TEST-01");
   assert.equal(result.responseId, "RSP-TEST-01");
   assert.equal(state.inventory.availableQuantity, 900);
@@ -128,6 +129,24 @@ const run = async () => {
   assert.equal(state.distributions.length, 1);
   assert.equal(state.inventory.availableQuantity, 900);
 
+  for (const [payload, code] of [
+    [{ ...validPayload, incidentId: "" }, "INCIDENT_NOT_FOUND"],
+    [{ ...validPayload, shelterId: "invalid-id" }, "SHELTER_NOT_FOUND"],
+    [{ ...validPayload, inventoryItemId: "invalid-id" }, "INVENTORY_ITEM_NOT_FOUND"],
+    [{ ...validPayload, resourceOwnerId: "invalid-id" }, "RESOURCE_OWNER_NOT_FOUND"],
+    [{ ...validPayload, quantity: "" }, "INVALID_QUANTITY"],
+    [{ ...validPayload, quantity: -1 }, "INVALID_QUANTITY"],
+    [{ ...validPayload, deliveryResourceId: "invalid-id" }, "DELIVERY_RESOURCE_NOT_FOUND"],
+    [{ ...validPayload, eta: "not-a-date" }, "INVALID_ETA"],
+    [{ ...validPayload, requestId: "  " }, "INVALID_IDEMPOTENCY_KEY"],
+    [{ ...validPayload, requestId: "r".repeat(201) }, "INVALID_IDEMPOTENCY_KEY"],
+    [{ ...validPayload, notes: "x".repeat(501) }, "INVALID_NOTES"],
+  ]) {
+    reset();
+    await expectCode(() => service.createDistribution(payload), code);
+    assert.equal(state.inventory.availableQuantity, 1000, `${code} must not change stock`);
+  }
+
   reset(); state.inventory.availableQuantity = 50;
   await expectCode(() => service.createDistribution(validPayload), "INSUFFICIENT_STOCK");
   assert.equal(state.inventory.availableQuantity, 50);
@@ -135,6 +154,30 @@ const run = async () => {
   reset(); state.delivery.status = "IN_USE";
   await expectCode(() => service.createDistribution(validPayload), "DELIVERY_RESOURCE_UNAVAILABLE");
   assert.equal(state.inventory.availableQuantity, 1000);
+
+  reset(); state.incident.status = "RESOLVED";
+  await expectCode(() => service.createDistribution(validPayload), "INCIDENT_NOT_ACTIVE");
+
+  reset(); state.assignment = null;
+  await expectCode(() => service.createDistribution({ ...validPayload, responseId: undefined }), "RELIEF_CONTEXT_REQUIRED");
+
+  reset();
+  await expectCode(() => service.createDistribution({ ...validPayload, responseId: "RSP-MISSING" }), "RESPONSE_ASSIGNMENT_NOT_FOUND");
+
+  reset(); state.shelter.incidentId = "INC-OTHER";
+  await expectCode(() => service.createDistribution(validPayload), "SHELTER_NOT_FOUND");
+
+  reset(); state.assignment.requiredCapabilities = ["FOOD"];
+  await expectCode(() => service.createDistribution(validPayload), "RESOURCE_NOT_REQUIRED");
+
+  reset(); state.inventory.status = "INACTIVE";
+  await expectCode(() => service.createDistribution(validPayload), "INVENTORY_ITEM_INACTIVE");
+
+  reset(); state.inventory.ownerId = new mongoose.Types.ObjectId();
+  await expectCode(() => service.createDistribution(validPayload), "RESOURCE_OWNER_NOT_FOUND");
+
+  reset();
+  await expectCode(() => service.createDistribution({ ...validPayload, requestId: "" }), "INVALID_IDEMPOTENCY_KEY");
 
   reset(); inventoryConflict = true;
   await expectCode(() => service.createDistribution(validPayload), "INVENTORY_CONFLICT");

@@ -4,7 +4,7 @@ export const isCommittedDistribution = (distribution) => Boolean(
   distribution
   && typeof distribution.distributionId === 'string'
   && distribution.distributionId.trim()
-  && distribution.status === 'EN_ROUTE'
+  && distribution.status === 'PENDING'
   && typeof distribution.incidentId === 'string'
   && distribution.incidentId.trim()
   && distribution.shelterId

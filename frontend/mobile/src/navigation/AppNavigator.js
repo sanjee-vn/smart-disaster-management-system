@@ -18,7 +18,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import StaffHomeScreen from '../screens/StaffHomeScreen';
 import StaffMapScreen from '../screens/StaffMapScreen';
-import StaffResourceReportsScreen from '../screens/StaffResourceReportsScreen';
+import StaffDeliveryReportsScreen from '../screens/StaffDeliveryReportsScreen';
 
 const Tabs = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -41,7 +41,7 @@ function StaffTabs() {
   return <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: c.primary, tabBarInactiveTintColor: '#738991', tabBarLabelStyle: { fontSize: 11, fontWeight: '600' }, tabBarIcon: ({ focused, color }) => <Icon name={`${({ Home: 'home', Map: 'map', Reports: 'documents', Profile: 'person' })[route.name]}${focused ? '' : '-outline'}`} size={23} color={color}/> })}>
     <Tabs.Screen name="Home" component={StaffHomeScreen}/>
     <Tabs.Screen name="Map" component={StaffMapScreen}/>
-    <Tabs.Screen name="Reports" component={StaffResourceReportsScreen}/>
+    <Tabs.Screen name="Reports" component={StaffDeliveryReportsScreen}/>
     <Tabs.Screen name="Profile" component={ProfileScreen}/>
   </Tabs.Navigator>;
 }
