@@ -5,6 +5,7 @@ const requireStaffAuth = require('../../middleware/requireAuth');
 const requireRole = require('../../middleware/requireRole');
 
 router.post("/", requireCitizenAuth, submitGroundReport);
+router.post("/photo", requireCitizenAuth, require('./report.upload').uploadPhoto);
 router.get("/alerts", requireCitizenAuth, listPublishedAlerts);
 router.get("/mine", requireCitizenAuth, listMyGroundReports);
 router.get("/", requireStaffAuth, requireRole("dmc_officer", "duty_officer"), listGroundReports);

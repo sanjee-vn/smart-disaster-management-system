@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Disaster Connect",
+    "name": "ResQConnect",
     "slug": "disaster-connect",
     "version": "1.0.1",
     "orientation": "portrait",
@@ -22,7 +22,15 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ResQConnect to attach incident photos.",
+          "cameraPermission": "Allow ResQConnect to take incident photos.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

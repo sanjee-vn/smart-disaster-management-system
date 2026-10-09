@@ -1,3 +1,4 @@
+import { OfficerSessionContext } from './context/OfficerSessionContext';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Bell, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Menu, MoreHorizontal, Send, Siren, X, Activity } from 'lucide-react';
@@ -205,7 +206,7 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
 
   return <div className="app-shell" data-portal-role={portalRole}><aside className={`sidebar ${mobileMenu ? 'sidebar-open' : ''}`}><Brand/><div className="nav-caption">{portalRole === 'district' ? 'DISTRICT OFFICER' : 'DUTY OFFICER'}</div><nav>{navItems.filter(({ label }) => portalRole === 'duty' || label !== 'Warnings').map(({ label, icon: Icon, screen: destination }) => <button key={label} className={`nav-item ${activeNav === label ? 'nav-active' : ''}`} onClick={() => navigate(destination, label)}><Icon size={18}/><span>{label}</span>{label === 'Warnings' && warnings.length > 0 && <small>{warnings.length}</small>}</button>)}</nav><div className="sidebar-bottom"><div className="connection-status"><i className="online-dot"/><span>{loading ? 'Connecting to API' : error ? 'API unavailable' : 'API connected'}</span></div><button className="user-card" onClick={onLogout}><span className="avatar">{portalRole === 'district' ? 'DS' : 'DO'}</span><span><b>{portalRole === 'district' ? 'District Officer' : 'Duty Officer'}</b><small>{portalRole === 'district' ? 'District Operations' : 'DMC · National Operations'}</small></span><span className="user-signout">Sign out</span></button></div></aside>
     {mobileMenu && <button className="mobile-scrim" aria-label="Close menu" onClick={() => setMobileMenu(false)}/>}
-    <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{activeNav}</b></div><div className="topbar-actions"><span className="topbar-date">{new Date().toLocaleDateString('en-LK', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</span><button className="notification-button" aria-label="Notifications" onClick={() => setToast('You are up to date with all system notifications')}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">AO</span><span><b>Assessment Officer</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className="content-area">{error && <div className="api-status-banner" role="alert"><span>{error}</span><Button variant="secondary-blue" onClick={() => void refresh()}>Retry connection</Button></div>}{!loading && !error && hazards.length === 0 && <div className="api-status-banner"><span>No hazard records found. Start the backend, then run <code>npm run seed:hazards</code> from the backend folder.</span><Button variant="secondary-blue" onClick={() => void refresh()}>Refresh</Button></div>}{currentScreen}<footer className="page-footer"><span>SDEWS · Smart Disaster Early-Warning System</span><span>Hazard and warning records stored in MongoDB <i className="online-dot"/></span></footer></div></main>
+    <main className="main-area"><header className="topbar"><button className="mobile-menu-button" aria-label="Open navigation" onClick={() => setMobileMenu(!mobileMenu)}><Menu size={20}/></button><div className="topbar-breadcrumb"><span>Operations</span><ChevronRight size={14}/><b>{activeNav}</b></div><div className="topbar-actions"><span className="topbar-date">{new Date().toLocaleDateString('en-LK', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</span><button className="notification-button" aria-label="Notifications" onClick={() => setToast('You are up to date with all system notifications')}><Bell size={19}/><i/></button><div className="topbar-user"><span className="avatar">AO</span><span><b>Assessment Officer</b><small>National Operations</small></span><ChevronDown size={14}/></div></div></header><div className="content-area">{error && <div className="api-status-banner" role="alert"><span>{error}</span><Button variant="secondary-blue" onClick={() => void refresh()}>Retry connection</Button></div>}{!loading && !error && hazards.length === 0 && <div className="api-status-banner"><span>No hazard records found. Start the backend, then run <code>npm run seed:hazards</code> from the backend folder.</span><Button variant="secondary-blue" onClick={() => void refresh()}>Refresh</Button></div>}{currentScreen}<footer className="page-footer"><span>ResQConnect · Smart Disaster Early-Warning System</span><span>Hazard and warning records stored in MongoDB <i className="online-dot"/></span></footer></div></main>
     {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModal('') }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={19}/></button>{modal === 'hazard-actions' ? <><span className="modal-icon amber"><MoreHorizontal/></span><h2 id="modal-title">Hazard actions</h2><p>Choose an action for {selectedHazard.id} in {selectedHazard.district}.</p><div className="modal-actions vertical"><Button variant="primary" onClick={() => { setModal(''); navigate('details', 'Hazard Monitoring') }}>Review hazard details</Button><Button variant="teal-button" onClick={() => { setModal(''); beginWarning(selectedHazard.id) }}>Create warning draft</Button><Button onClick={() => setModal('')}>Close</Button></div></> : modal === 'publish' ? <><span className="modal-icon warning-icon"><AlertTriangle/></span><div className="modal-eyebrow">FINAL CONFIRMATION</div><h2 id="modal-title">Confirm publication</h2><p>You are about to publish this <b>{warning.level.toLowerCase()} warning</b> to <b>{warning.areas.length} affected areas</b> through {warning.channels.join(', ')}. This records the warning and adds it to the delivery queue. No external channel provider will send it from this build.</p><div className="modal-summary"><span>Hazard <b>{selectedHazard.id}</b></span><span>Target audience <b>{(warning.areas.length * 12480).toLocaleString()} people</b></span></div><div className="modal-actions"><Button onClick={() => setModal('')}>No, go back</Button><Button variant="danger-button" icon={Send} disabled={publishing} onClick={publishWarning}>{publishing ? 'Recording?' : 'Record warning'}</Button></div></> : modal === 'escalate' ? <><span className="modal-icon blue"><ArrowRight/></span><div className="modal-eyebrow">ESCALATION</div><h2 id="modal-title">Escalate this warning?</h2><p>This marks the warning for regional review. No external authority notification is configured.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Go back</Button><Button variant="primary" onClick={dispatchEscalation}>Confirm escalation</Button></div></> : modal === 'cancel-warning' ? <><span className="modal-icon danger"><X/></span><div className="modal-eyebrow">STOP DELIVERY</div><h2 id="modal-title">Cancel this warning?</h2><p>Further delivery attempts will stop. The issued warning will be marked as cancelled in the audit history.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Keep warning active</Button><Button variant="danger-button" onClick={cancelIssuedWarning}>Confirm cancellation</Button></div></> : <><span className="modal-icon amber"><AlertTriangle/></span><h2 id="modal-title">Cancel this process?</h2><p>Your latest saved draft is stored in MongoDB for this hazard.</p><div className="modal-actions"><Button onClick={() => setModal('')}>Continue editing</Button><Button variant="danger-button" onClick={async () => { if (await saveDraft()) { setModal(''); navigate('dashboard', 'Dashboard') } }}>Save and exit</Button></div></>}</section></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={18}/>{toast}<button aria-label="Dismiss notification" onClick={() => setToast('')}><X size={15}/></button></div>}
   </div>
@@ -214,7 +215,7 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
 function App() {
   const [authSession, setAuthSession] = useState(() => readAuthSession())
   const roleMap = {
-    dmc_officer: 'dmc', duty_officer: 'duty', district_officer: 'district',
+    dmc_officer: 'dmc', duty_officer: 'duty',
     district_resource_officer: 'resource', district_resource_coordination_officer: 'resource',
     response_officer: 'response', response_operations_officer: 'response',
   }
@@ -262,9 +263,6 @@ function App() {
   const dutyPage = role === 'duty'
     ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="duty"/>
     : <Navigate to={role ? '/dmc' : '/login'} replace/>
-  const districtPage = role === 'district'
-    ? <HazardWarningApp activeReport={activeReport} onWarningIssued={finishWarning} onLogout={logout} reports={reports} onSelectReport={issueWarningFor} portalRole="district"/>
-    : <Navigate to={role ? '/duty' : '/login'} replace/>
   const c3 = (page) => <Component03ErrorBoundary>{page}</Component03ErrorBoundary>
   const responseEntry = role === 'response'
     ? c3(<ResponseOperationsDashboard/> )
@@ -274,14 +272,13 @@ function App() {
   const resourceOnly = (page) => role === 'resource' ? c3(page) : <Navigate to="/" replace/>
   const warningOnly = (page) => role === 'duty' ? c3(page) : <Navigate to="/" replace/>
 
-  return <BrowserRouter><Routes>
-    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'district' ? '/district' : role === 'resource' ? '/resource-operations' : role === 'response' ? '/response-operations' : '/login'} replace/>}/>
+  return <OfficerSessionContext.Provider value={authSession}><BrowserRouter><Routes>
+    <Route path="/" element={<Navigate to={role === 'dmc' ? '/dmc' : role === 'duty' ? '/duty/hazard-monitoring' : role === 'resource' ? '/resource-operations' : role === 'response' ? '/response-operations' : '/login'} replace/>}/>
     <Route path="/login" element={role ? <Navigate to="/" replace/> : loginPage}/>
     <Route path="/register" element={role ? <Navigate to="/" replace/> : registerPage}/>
     <Route path="/dmc" element={dmcPage}/>
     <Route path="/duty" element={dutyPage}/>
     <Route path="/duty/hazard-monitoring" element={dutyPage}/>
-    <Route path="/district" element={districtPage}/>
     <Route path="/warnings/:warningId/review" element={warningOnly(<WarningReviewPage/>)}/>
     <Route path="/warnings/:warningId/configure" element={warningOnly(<ConfigureWarningPage/>)}/>
     <Route path="/warnings/:warningId/status" element={warningOnly(<WarningStatusPage/>)}/>
@@ -306,7 +303,7 @@ function App() {
     <Route path="/resource-coordination/distributions/processing" element={resourceOnly(<ProcessingDistributionPage/>)}/>
     <Route path="/resource-coordination/distributions/success" element={resourceOnly(<DistributionSuccessPage/>)}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
-  </Routes></BrowserRouter>
+  </Routes></BrowserRouter></OfficerSessionContext.Provider>
 }
 
 export default App

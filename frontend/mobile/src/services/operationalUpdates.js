@@ -25,3 +25,7 @@ export async function acceptResponseAssignment(responseId) {
 export async function deliverDistribution(distributionId, incidentId) {
   return api.patch(`/resource-coordination/distributions/${encodeURIComponent(distributionId)}/deliver`, { incidentId }).then(unwrap);
 }
+
+export async function acceptOperationalRequest(requestId) {
+  return api.post(`/response-operations/operational-requests/${encodeURIComponent(requestId)}/accept`).then(unwrap);
+}

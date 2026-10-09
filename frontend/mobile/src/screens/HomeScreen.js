@@ -1,3 +1,4 @@
+import useCurrentLocation from '../hooks/useCurrentLocation';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ const ACTIONS = [
   { title: 'Emergency Contacts', icon: 'call-outline', route: 'Contacts', tint: '#F8BDBD', color: '#B43135' },
 ];
 export default function HomeScreen({ navigation }) {
+  const currentLocation = useCurrentLocation();
   const { reports, loading, reload } = useReports();
   const [alerts, setAlerts] = useState([]);
   useFocusEffect(useCallback(() => {
@@ -34,13 +36,14 @@ export default function HomeScreen({ navigation }) {
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={['#CEE8D1', '#B9CFC5', '#EDF2EF']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={s.hero}>
         <View style={s.brandRow}>
-          <View style={s.brand}><Icon name="shield-checkmark-outline" size={27} color="#163E2A" /><Text style={s.brandName}>Disaster Connect</Text></View>
+          <View style={s.brand}><Icon name="shield-checkmark-outline" size={27} color="#163E2A" /><Text style={s.brandName}>ResQConnect</Text></View>
           <View style={s.headerActions}><Pressable accessibilityRole="button" accessibilityLabel="Open alerts and notifications" onPress={() => navigation.navigate('Alerts')} style={s.bell}><Icon name="notifications-outline" size={23} color="#244A3B" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={() => navigation.navigate('Profile')} style={s.bell}><Icon name="settings-outline" size={23} color="#244A3B" /></Pressable></View>
         </View>
         <View style={s.welcomeRow}>
           <View style={ui.flex}><Text style={s.heading}>{greeting()}, {user?.name?.split(' ')[0] || 'User'}!</Text><Text style={s.headerSubtitle}>Stay safe. Stay informed.</Text></View>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open the map to explore locations" onPress={() => navigation.navigate('Map')} style={s.heroFooter}><Icon name="location-outline" size={22} color="#6A7772" /><Text style={s.locationText}>Location not selected</Text><Icon name="chevron-down" size={17} color="#6A7772" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Refresh current location" disabled={currentLocation.busy} onPress={currentLocation.refresh} style={s.heroFooter}><Icon name="location-outline" size={22} color="#6A7772" /><Text style={s.locationText}>{currentLocation.busy ? 'Finding your location...' : currentLocation.place}</Text><Icon name="chevron-down" size={17} color="#6A7772" /></Pressable>
+        {!!currentLocation.error && <Text style={{ color: '#B42318', marginTop: 8 }}>{currentLocation.error}</Text>}
       </LinearGradient>
 
       <View style={s.body}>

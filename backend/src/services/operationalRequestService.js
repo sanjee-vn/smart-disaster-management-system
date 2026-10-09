@@ -26,6 +26,7 @@ const format = request => ({
   notes: request.notes || "", status: request.status, reviewedBy: request.reviewedBy || null,
   reviewedAt: request.reviewedAt || null, rejectionReason: request.rejectionReason || null,
   approvedTeam: request.approvedTeamId?.name ? { id: request.approvedTeamId._id.toString(), name: request.approvedTeamId.name, type: request.approvedTeamId.type, capacity: request.approvedTeamId.capacity, status: request.approvedTeamId.status, agency: request.approvedTeamId.agencyId ? { id: request.approvedTeamId.agencyId._id.toString(), name: request.approvedTeamId.agencyId.name, type: request.approvedTeamId.agencyId.type } : null } : null,
+  staffAcceptedAt: request.staffAcceptedAt || null,
   dispatchedAt: request.dispatchedAt || null, deliveredAt: request.deliveredAt || null, completedAt: request.completedAt || null, createdAt: request.createdAt,
 });
 const list = async ({ incidentId, status } = {}) => {
@@ -124,4 +125,15 @@ const deliverByStaff = async (requestId) => {
   }
   return format(await repository.findByRequestId(requestId));
 };
-module.exports = { list, create, review, dispatch, deliverByStaff };
+const acceptByStaff = async (requestId) => {
+  const Request = require('../models/OperationalRequest');
+  const updated = await Request.findOneAndUpdate(
+    { requestId, status: 'DISPATCHED', staffAcceptedAt: null },
+    { $set: { staffAcceptedAt: new Date() } }, { new: true, runValidators: true }
+  );
+  const request = await repository.findByRequestId(requestId);
+  if (!request) throw fail('REQUEST_NOT_FOUND', 'Operational request not found', 404);
+  if (!updated && !request.staffAcceptedAt) throw fail('REQUEST_NOT_ACCEPTABLE', 'Only dispatched requests can be accepted by staff', 409);
+  return format(request);
+};
+module.exports = { list, create, review, dispatch, deliverByStaff, acceptByStaff };
