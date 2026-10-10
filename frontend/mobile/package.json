@@ -29,8 +29,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test tests/reports.test.cjs",
-    "test:coverage": "node --test --experimental-test-coverage tests/reports.test.cjs"
+    "test": "node --test tests/authValidation.test.cjs tests/reportCache.test.cjs tests/reportFormValidation.test.cjs tests/reportHelpers.test.cjs",
+    "test:coverage": "node --test --experimental-test-coverage tests/authValidation.test.cjs tests/reportCache.test.cjs tests/reportFormValidation.test.cjs tests/reportHelpers.test.cjs",
+    "test:ground-reporting": "node --test tests/reportFormValidation.test.cjs tests/reportHelpers.test.cjs tests/reportCache.test.cjs"
   },
   "private": true,
   "devDependencies": {
