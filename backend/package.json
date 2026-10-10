@@ -2,7 +2,9 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
-  "directories": { "test": "tests" },
+  "directories": {
+    "test": "tests"
+  },
   "scripts": {
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
@@ -11,9 +13,10 @@
     "reset:component03-pending": "node src/seeds/resetPendingDistributions.js",
     "seed:hazards": "node src/seeds/seedHazards.js",
     "seed:response-operations": "node src/seeds/seedResponseOperations.js",
-    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/reports.test.js tests/hazardWarningService.test.js tests/hazardWarningResponse.test.js",
+    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/groundReportValidation.test.js tests/groundReportModel.test.js tests/groundReportService.test.js tests/groundReportController.test.js tests/reportPhotoUpload.test.js tests/hazardWarningService.test.js tests/hazardWarningResponse.test.js",
     "test:response-operations": "node tests/component03Auth.test.js && node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/responseTeamAvailability.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js",
-    "test:coverage": "node --test --experimental-test-coverage"
+    "test:coverage": "node --test --experimental-test-coverage",
+    "test:ground-reporting": "node --test tests/groundReportValidation.test.js tests/groundReportModel.test.js tests/groundReportService.test.js tests/groundReportController.test.js tests/reportPhotoUpload.test.js"
   },
   "keywords": [],
   "author": "",
@@ -30,5 +33,7 @@
     "multer": "^2.4.0",
     "pg": "^8.23.1"
   },
-  "devDependencies": { "nodemon": "^3.1.14" }
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
