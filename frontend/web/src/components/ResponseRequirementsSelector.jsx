@@ -3,7 +3,6 @@ import ValidationMessage from './ValidationMessage'
 const groups = [
   { title: 'Emergency Response', options: [['RESCUE', 'Rescue Team'], ['POLICE', 'Police'], ['ARMED_FORCES', 'Armed Forces'], ['FIRE_RESCUE', 'Fire & Rescue'], ['MEDICAL', 'Medical Team']] },
   { title: 'Shelter / Evacuation', options: [['SHELTER', 'Emergency Shelter'], ['EVACUATION', 'Evacuation Support']] },
-  { title: 'Relief Resources', options: [['FOOD', 'Food'], ['WATER', 'Water'], ['MEDICINE', 'Medicine']] },
 ]
 
 export default function ResponseRequirementsSelector({ selected, onChange, error }) {
