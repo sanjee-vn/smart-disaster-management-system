@@ -1,0 +1,7 @@
+{
+  "name": "resqconnect-workspace",
+  "private": true,
+  "scripts": {
+    "test:ground-reporting": "npm --prefix backend run test:ground-reporting && npm --prefix frontend/mobile run test:ground-reporting"
+  }
+}
