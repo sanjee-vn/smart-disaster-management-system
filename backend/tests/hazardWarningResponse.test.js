@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { toWarningResponse } = require("./hazardWarningService");
+const { toWarningResponse } = require("../src/services/hazardWarningService");
 
 test("serializes warnings using the nested warning details", () => {
   const result = toWarningResponse({

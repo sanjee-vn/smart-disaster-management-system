@@ -84,6 +84,7 @@ const makeFixture = ({ hazard = makeHazard(), warning = makeWarning() } = {}) =>
   const hazardRecords = new Map([[hazard.hazardId, hazard]]);
   const warningRecords = new Map([[warning.warningId, warning]]);
   const draftRecords = new Map();
+  const incidentRecords = [];
   let anotherPublishedWarning = false;
   const hazardRepository = {
     findAll: async (filters) => [...hazardRecords.values()].filter((record) => Object.entries(filters).every(([key, value]) => record[key] === value)),
@@ -131,7 +132,14 @@ const makeFixture = ({ hazard = makeHazard(), warning = makeWarning() } = {}) =>
     },
   };
   const mongoose = {
+    isValidObjectId: () => true,
     startSession: async () => ({ withTransaction: async (operation) => operation(), endSession: async () => {} }),
+  };
+  const incidentModel = {
+    create: async (records) => {
+      incidentRecords.push(...records);
+      return records;
+    },
   };
   return {
     service: createHazardWarningService({
@@ -139,12 +147,14 @@ const makeFixture = ({ hazard = makeHazard(), warning = makeWarning() } = {}) =>
       warningRepository,
       warningDraftRepository,
       mongoose,
+      incidentModel,
       clock: () => new Date("2026-10-08T12:00:00Z"),
       makeWarningId: () => "WRN-2026-NEW123",
     }),
     hazardRecords,
     warningRecords,
     draftRecords,
+    incidentRecords,
     setAnotherPublishedWarning: (value) => { anotherPublishedWarning = value; },
   };
 };
@@ -196,7 +206,7 @@ test("lists and reads warnings with status validation", async () => {
 });
 
 test("publishes a valid warning and updates the hazard in one transaction", async () => {
-  const { service, hazardRecords, warningRecords } = makeFixture();
+  const { service, hazardRecords, warningRecords, incidentRecords } = makeFixture();
   const published = await service.publishWarning(makeValidPayload());
   assert.equal(published.id, "WRN-2026-NEW123");
   assert.equal(published.pending, 24960);
@@ -204,6 +214,9 @@ test("publishes a valid warning and updates the hazard in one transaction", asyn
   assert.equal(published.audit[0].type, "PUBLISHED");
   assert.equal(hazardRecords.get("HZ-2024-001").status, "Warning Issued");
   assert.equal(warningRecords.size, 2);
+  assert.equal(incidentRecords.length, 1);
+  assert.equal(incidentRecords[0].hazardType, "Flood");
+  assert.equal(incidentRecords[0].severity, "WARNING");
 });
 
 test("rejects invalid warning payloads and unknown hazards", async () => {

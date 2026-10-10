@@ -62,6 +62,8 @@ const createHazardWarningService = (dependencies = {}) => {
   const warnings = dependencies.warningRepository || warningRepository;
   const drafts = dependencies.warningDraftRepository || warningDraftRepository;
   const mongo = dependencies.mongoose || mongoose;
+  const groundReports = dependencies.groundReportModel || GroundReport;
+  const incidents = dependencies.incidentModel || Incident;
   const clock = dependencies.clock || (() => new Date());
   const makeWarningId = dependencies.makeWarningId || (() => `WRN-${clock().getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`);
 
@@ -195,8 +197,8 @@ const createHazardWarningService = (dependencies = {}) => {
       const reportId = String(payload?.reportId || "").trim();
       let report = null;
       if (reportId) {
-        if (!mongoose.isValidObjectId(reportId)) throw new AppError("Ground report not found", 404, "REPORT_NOT_FOUND");
-        report = await GroundReport.findById(reportId).session(session).lean();
+        if (!mongo.isValidObjectId(reportId)) throw new AppError("Ground report not found", 404, "REPORT_NOT_FOUND");
+        report = await groundReports.findById(reportId).session(session).lean();
         if (!report) throw new AppError("Ground report not found", 404, "REPORT_NOT_FOUND");
         if (report.status === "WARNING_ISSUED" && report.warningId) {
           const existingWarning = await warnings.findById(report.warningId, session);
@@ -230,7 +232,7 @@ const createHazardWarningService = (dependencies = {}) => {
       const updatedHazard = await hazards.updateById(hazardId, { status: "Warning Issued" }, session);
       if (!updatedHazard) throw new AppError("Hazard not found", 404, "HAZARD_NOT_FOUND");
       if (report) {
-        const updatedReport = await GroundReport.findOneAndUpdate(
+        const updatedReport = await groundReports.findOneAndUpdate(
           { _id: report._id, status: "FORWARDED_TO_DUTY_OFFICER" },
           { $set: { status: "WARNING_ISSUED", warningId, warningIssuedAt: now } },
           { new: true, session },
@@ -239,7 +241,7 @@ const createHazardWarningService = (dependencies = {}) => {
       }
       const incidentId = `INC-${now.getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`;
       const severity = details.level === "Very High" ? "EMERGENCY" : details.level === "High" ? "WARNING" : "WATCH";
-      await Incident.create([{
+      await incidents.create([{
         incidentId,
         warningId: document._id,
         hazardType: hazard.type,

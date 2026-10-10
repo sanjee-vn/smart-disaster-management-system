@@ -84,6 +84,9 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
 
   const selectedHazard = hazards.find((hazard) => hazard.id === selectedHazardId) || hazards[0]
   const issuedWarning = warnings.find((item) => item.id === issueId) || warnings[0]
+  const workflowReport = workflowReportId
+    ? reports.find((report) => report.id === workflowReportId) || (activeReport?.id === workflowReportId ? activeReport : null)
+    : null
 
   useEffect(() => { if (!toast) return undefined; const timer = setTimeout(() => setToast(''), 3200); return () => clearTimeout(timer) }, [toast])
 
@@ -130,6 +133,7 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
     const hazard = hazards.find((item) => item.id === id)
     if (!hazard) { setToast('Load hazard records before starting a warning'); return }
     setSelectedHazardId(id)
+    setWorkflowReportId('')
     setEvidenceRequested(false)
     let draft = null
     try { draft = await loadDraft(id) }
@@ -185,7 +189,7 @@ function HazardWarningApp({ activeReport, onWarningIssued, onLogout, reports = [
   }
   const toggleCheck = (index) => setChecks((current) => current.map((item, i) => i === index ? !item : item))
 
-  const screenProps = { Header, Badge, Button, Field, MapPanel, hazards, selectedHazard, selectedHazardId, setSelectedHazardId, warning, setWarning, warnings, issuedWarning, filter, setFilter, filteredHazards, navigate, beginWarning, updateHazard, updateWarning, toggleInList, saveDraft, retryChannel, refreshData: refresh, setModal, setToast, setPage, page, reportCount, setReportCount, photoCount, setPhotoCount, setIssueId, evidenceRequested, setEvidenceRequested, checks, toggleCheck, publishWarning, cancelIssuedWarning };
+  const screenProps = { Header, Badge, Button, Field, MapPanel, hazards, selectedHazard, selectedHazardId, setSelectedHazardId, warning, setWarning, warnings, issuedWarning, workflowReport, filter, setFilter, filteredHazards, navigate, beginWarning, updateHazard, updateWarning, toggleInList, saveDraft, retryChannel, refreshData: refresh, setModal, setToast, setPage, page, reportCount, setReportCount, photoCount, setPhotoCount, setIssueId, evidenceRequested, setEvidenceRequested, checks, toggleCheck, publishWarning, cancelIssuedWarning };
   const pageByScreen = { dashboard: DashboardScreen, details: HazardDetailsScreen, assessment: EventAssessmentScreen, level: WarningLevelScreen, area: AffectedAreaScreen, review: WarningReviewScreen, delivery: DeliveryStatusScreen, warnings: WarningRegisterScreen };
   const warningsWithHazardNames = warnings.map((item) => {
     const hazard = hazards.find((candidate) => candidate.id === item.hazardId)

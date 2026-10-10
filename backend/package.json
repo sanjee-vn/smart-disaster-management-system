@@ -11,7 +11,7 @@
     "reset:component03-pending": "node src/seeds/resetPendingDistributions.js",
     "seed:hazards": "node src/seeds/seedHazards.js",
     "seed:response-operations": "node src/seeds/seedResponseOperations.js",
-    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/reports.test.js test/hazardWarningService.test.js src/services/hazardWarningResponse.test.js",
+    "test": "node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js && node --test tests/auth.test.js tests/reports.test.js tests/hazardWarningService.test.js tests/hazardWarningResponse.test.js",
     "test:response-operations": "node tests/component03Auth.test.js && node tests/routeSafety.test.js && node tests/warningUpdate.test.js && node tests/assignmentDispatch.test.js && node tests/operationalRequest.test.js && node tests/responseTeamAvailability.test.js && node tests/distributionCommit.test.js && node tests/distributionDelivery.test.js && node tests/responseResolution.test.js",
     "test:coverage": "node --test --experimental-test-coverage"
   },
